@@ -46,6 +46,150 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+
+FELT_CSS = """
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+html, body, [data-testid="stAppViewContainer"], .stApp {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.block-container, [data-testid="stMainBlockContainer"] {
+  padding-top: 1.25rem; padding-bottom: 1rem; max-width: 98%;
+}
+#MainMenu, footer, [data-testid="stToolbarActions"], [data-testid="stAppDeployButton"],
+[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stHeader"] { background: transparent; }
+iframe { border: none !important; }
+iframe[title*="st_folium"] {
+  border-radius: 14px; border: 1px solid rgba(255,255,255,.06) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+
+/* Floating panels: KPI cards */
+[data-testid="stMetric"] {
+  background: #262626; border-radius: 12px; padding: 1rem 1.2rem;
+  border: 1px solid rgba(255,255,255,.05);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
+}
+[data-testid="stMetricLabel"] p {
+  font-size: .72rem; font-weight: 500; color: #A3A3A3; letter-spacing: .02em;
+}
+[data-testid="stMetricValue"] {
+  color: #FFFFFF; font-weight: 600; letter-spacing: -.02em; font-size: 1.6rem;
+}
+[data-testid="stDataFrame"] {
+  border: 1px solid rgba(255,255,255,.08); border-radius: 12px; overflow: hidden;
+}
+[data-testid="stExpander"] {
+  border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #171717;
+}
+[data-testid="stTabs"] button p { font-size: .8rem; font-weight: 600; }
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+  background: #1F1F1F; border-right: none; box-shadow: 1px 0 10px rgba(0,0,0,.25);
+}
+[data-testid="stSidebar"] hr { margin: .9rem 0; border: 0; border-top: 1px solid #333; }
+.uhi-side-h {
+  font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: #A3A3A3; margin: .25rem 0 .55rem;
+}
+
+/* Hero */
+.uhi-hero {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;
+  flex-wrap: wrap; padding: .5rem 0; margin-bottom: 1rem;
+}
+.uhi-eyebrow {
+  font-size: .7rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: #3B82F6; display: flex; align-items: center; gap: .5rem;
+}
+.uhi-dot { width: 8px; height: 8px; border-radius: 50%; background: #3B82F6; }
+.uhi-hero h1 {
+  font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; margin: .2rem 0 .15rem;
+  padding: 0; color: #FFFFFF;
+}
+.uhi-hero p { color: #A3A3A3; margin: 0; font-size: .92rem; }
+.uhi-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.uhi-chip {
+  border: 1px solid rgba(255,255,255,.1); background: #262626; border-radius: 999px;
+  padding: .25rem .7rem; font-size: .75rem; color: #D4D4D4; white-space: nowrap;
+}
+.uhi-chip b { color: #FFFFFF; }
+
+/* Inspector card */
+.uhi-insp {
+  background: #262626; border: 1px solid rgba(255,255,255,.05); border-radius: 12px;
+  padding: 1.1rem 1.2rem; margin-bottom: .8rem; color: #FFFFFF;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
+}
+.uhi-insp-top {
+  display: flex; justify-content: space-between; gap: .8rem; align-items: flex-start;
+}
+.uhi-insp-k {
+  font-size: .66rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: #3B82F6;
+}
+.uhi-insp-nb { font-size: 1.25rem; font-weight: 700; color: #FFFFFF; line-height: 1.2; }
+.uhi-insp-st { color: #A3A3A3; font-size: .85rem; }
+.uhi-insp-score {
+  text-align: center; border-radius: 10px; padding: .35rem .7rem; color: #fff; min-width: 64px;
+}
+.uhi-insp-score b { display: block; font-size: 1.6rem; line-height: 1.1; }
+.uhi-insp-score span {
+  font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; opacity: .85;
+}
+.uhi-insp-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin: .85rem 0;
+}
+.uhi-insp-stats div {
+  background: #171717; border: 1px solid rgba(255,255,255,.06); border-radius: 10px;
+  padding: .45rem .55rem;
+}
+.uhi-insp-stats span {
+  display: block; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
+  color: #737373;
+}
+.uhi-insp-stats b { font-size: .98rem; color: #FFFFFF; }
+.uhi-bar { margin: .4rem 0; font-size: .75rem; color: #D4D4D4; }
+.uhi-bar-row { display: flex; justify-content: space-between; }
+.uhi-bar-row span:last-child { color: #A3A3A3; }
+.uhi-bar-track {
+  height: 6px; border-radius: 3px; background: #404040; margin-top: 3px; overflow: hidden;
+}
+.uhi-bar-fill { height: 100%; border-radius: 3px; }
+.uhi-insp-rec {
+  margin-top: .8rem; border-left: 3px solid #10B981; background: rgba(16,185,129,.08);
+  border-radius: 8px; padding: .55rem .75rem; color: #D1FAE5; font-size: .85rem;
+}
+.uhi-insp-rec span {
+  display: block; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
+  color: #10B981; font-weight: 600;
+}
+.uhi-insp-rec.uhi-off {
+  border-left-color: #525252; background: rgba(82,82,82,.18); color: #A3A3A3;
+}
+.uhi-insp-rec.uhi-off span { color: #A3A3A3; }
+.uhi-hint { color: #737373; font-size: .75rem; margin: -.3rem 0 .6rem; }
+
+/* Generic custom cards */
+.uhi-kpi-card, .uhi-inspector, .uhi-inspector-card {
+  background: #262626; border-radius: 12px; padding: 1.2rem; color: #FFFFFF;
+  border: 1px solid rgba(255,255,255,.05);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
+}
+.uhi-insp a, .uhi-inspector a { color: #3B82F6; text-decoration: none; }
+.uhi-insp a:hover, .uhi-inspector a:hover { text-decoration: underline; }
+</style>
+"""
+
+
+def inject_felt_css() -> None:
+    """Inject the Felt-inspired page stylesheet (neutral dark panels, blue accent)."""
+    st.markdown(FELT_CSS, unsafe_allow_html=True)
+
+
 METADATA_JSON = config.DATA_PROCESSED_DIR / "scoring_metadata.json"
 WEB_FILES = {
     "grid": config.WEB_DIR / "grid_web.parquet",
@@ -82,9 +226,9 @@ DEFAULT_WEIGHTS = (config.WEIGHTS.thermal, config.WEIGHTS.distance, config.WEIGH
 MAP_HEIGHT_PX = 680
 
 # Palette (kept in sync with .streamlit/config.toml)
-BG = "#0B0F19"
-PANEL = "#111827"
-BORDER = "#1F2937"
+BG = "#171717"
+PANEL = "#262626"
+BORDER = "#333333"
 TEXT = "#F3F4F6"
 MUTED = "#9CA3AF"
 ACCENT = "#F97316"
@@ -576,97 +720,6 @@ def build_map(
 # --------------------------------------------------------------------------------------
 # Rendering
 # --------------------------------------------------------------------------------------
-APP_CSS = f"""
-<style>
-.block-container, [data-testid="stMainBlockContainer"] {{
-  padding-top: 1.5rem; padding-bottom: 1.5rem; max-width: 100%; }}
-#MainMenu, footer, [data-testid="stMainMenu"], [data-testid="stToolbarActions"],
-[data-testid="stAppDeployButton"], [data-testid="stDecoration"] {{ display: none !important; }}
-header[data-testid="stHeader"] {{ background: transparent; }}
-
-/* KPI cards */
-[data-testid="stMetric"] {{ background: rgba(17,24,39,.55); border: 1px solid {BORDER};
-  border-radius: 14px; padding: .85rem 1.1rem; backdrop-filter: blur(6px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03); }}
-[data-testid="stMetricLabel"] p {{ font-size: .7rem; letter-spacing: .09em;
-  text-transform: uppercase; color: {MUTED}; font-weight: 600; }}
-[data-testid="stMetricValue"] {{ font-size: 1.65rem; font-weight: 700; color: #F9FAFB; }}
-
-/* Sidebar */
-[data-testid="stSidebar"] {{ background: #0D1320; border-right: 1px solid {BORDER}; }}
-[data-testid="stSidebar"] hr {{ margin: .9rem 0; border: 0; border-top: 1px solid {BORDER}; }}
-.uhi-side-h {{ font-size: .68rem; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; color: {ACCENT}; margin: .25rem 0 .55rem; }}
-
-/* Map frame */
-iframe[title*="st_folium"] {{ border: 1px solid {BORDER} !important; border-radius: 14px;
-  background: {BG}; box-shadow: 0 18px 50px rgba(0,0,0,.45); }}
-
-/* Data panels */
-[data-testid="stDataFrame"] {{ border: 1px solid {BORDER}; border-radius: 12px; overflow: hidden; }}
-[data-testid="stExpander"] details {{ border: 1px solid {BORDER}; border-radius: 12px;
-  background: rgba(17,24,39,.4); }}
-[data-testid="stTabs"] button p {{ font-size: .8rem; font-weight: 600; letter-spacing: .02em; }}
-
-/* Hero */
-.uhi-hero {{ display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;
-  flex-wrap: wrap; margin-bottom: 1rem; }}
-.uhi-eyebrow {{ font-size: .7rem; font-weight: 700; letter-spacing: .16em;
-  text-transform: uppercase; color: {ACCENT}; display: flex; align-items: center; gap: .5rem; }}
-.uhi-dot {{ width: 8px; height: 8px; border-radius: 50%; background: {ACCENT};
-  box-shadow: 0 0 10px {ACCENT}; animation: uhiBlink 1.8s ease-in-out infinite; }}
-@keyframes uhiBlink {{ 50% {{ opacity: .35; }} }}
-.uhi-hero h1 {{ font-size: 2rem; font-weight: 800; letter-spacing: -.02em; margin: .2rem 0 .15rem;
-  padding: 0; color: #F9FAFB; }}
-.uhi-hero p {{ color: {MUTED}; margin: 0; font-size: .92rem; }}
-.uhi-chips {{ display: flex; gap: .4rem; flex-wrap: wrap; }}
-.uhi-chip {{ border: 1px solid {BORDER}; background: rgba(17,24,39,.7); border-radius: 999px;
-  padding: .25rem .7rem; font-size: .75rem; color: #D1D5DB; white-space: nowrap; }}
-.uhi-chip b {{ color: #F9FAFB; }}
-
-/* Inspector card */
-.uhi-insp {{ background: rgba(17,24,39,.55); border: 1px solid {BORDER}; border-radius: 14px;
-  padding: 1rem 1.1rem; margin-bottom: .8rem; }}
-.uhi-insp-top {{ display: flex; justify-content: space-between; gap: .8rem;
-  align-items: flex-start; }}
-.uhi-insp-k {{ font-size: .66rem; font-weight: 700; letter-spacing: .14em;
-  text-transform: uppercase; color: {ACCENT}; }}
-.uhi-insp-nb {{ font-size: 1.25rem; font-weight: 800; color: #F9FAFB; line-height: 1.2; }}
-.uhi-insp-st {{ color: {MUTED}; font-size: .85rem; }}
-.uhi-insp-score {{ text-align: center; border-radius: 12px; padding: .35rem .7rem; color: #fff;
-  min-width: 64px; }}
-.uhi-insp-score b {{ display: block; font-size: 1.6rem; line-height: 1.1; }}
-.uhi-insp-score span {{ font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
-  opacity: .85; }}
-.uhi-insp-stats {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem;
-  margin: .85rem 0; }}
-.uhi-insp-stats div {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 10px;
-  padding: .45rem .55rem; }}
-.uhi-insp-stats span {{ display: block; font-size: .6rem; letter-spacing: .08em;
-  text-transform: uppercase; color: #6B7280; }}
-.uhi-insp-stats b {{ font-size: .98rem; color: #F9FAFB; }}
-.uhi-bar {{ margin: .4rem 0; font-size: .75rem; color: #D1D5DB; }}
-.uhi-bar-row {{ display: flex; justify-content: space-between; }}
-.uhi-bar-row span:last-child {{ color: {MUTED}; }}
-.uhi-bar-track {{ height: 6px; border-radius: 3px; background: {BORDER}; margin-top: 3px;
-  overflow: hidden; }}
-.uhi-bar-fill {{ height: 100%; border-radius: 3px; }}
-.uhi-insp-rec {{ margin-top: .8rem; border-left: 3px solid {EMERALD};
-  background: rgba(16,185,129,.08); border-radius: 8px; padding: .55rem .75rem; color: #D1FAE5;
-  font-size: .85rem; }}
-.uhi-insp-rec span {{ display: block; font-size: .6rem; letter-spacing: .1em;
-  text-transform: uppercase; color: {EMERALD}; font-weight: 700; }}
-.uhi-insp-rec.uhi-off {{ border-left-color: #4B5563; background: rgba(75,85,99,.15);
-  color: {MUTED}; }}
-.uhi-insp-rec.uhi-off span {{ color: {MUTED}; }}
-.uhi-hint {{ color: #6B7280; font-size: .75rem; margin: -.3rem 0 .6rem; }}
-</style>
-"""
-
-
-def inject_css() -> None:
-    """Global dark command-center styling for Streamlit chrome, cards and panels."""
-    st.markdown(APP_CSS, unsafe_allow_html=True)
 
 
 def render_hero(meta: dict[str, Any], weights: Weights, k: int) -> None:
@@ -977,7 +1030,7 @@ def render_controls(
 
 def main() -> None:
     """Render the dashboard."""
-    inject_css()
+    inject_felt_css()
     absent = missing_files()
     if absent:
         st.error(
