@@ -16,3 +16,6 @@ data/raw/.osmnx_cache/
 # Generated geospatial caches
 *.parquet
 *.tif
+
+# Allow lightweight web GeoParquet layers for Streamlit Cloud
+!data/processed/web/*.parquet
