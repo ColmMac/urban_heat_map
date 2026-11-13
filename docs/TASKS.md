@@ -435,6 +435,6 @@ uv run pytest
 |--------|-----------|--------|-------|
 | 1 | `config.py`, `ingest.py` | [x] | code written; verification commands not yet run. Pin `BOUNDARY_OSM_ID` and commit `lst_scene_manifest.json` after the first run |
 | 2 | `spatial_grid.py` | [x] | 4,443 cells (1,748 urban); outputs cached in `data/processed/` |
-| 3 | `scoring.py` | ☐ | commit `data/processed/` |
+| 3 | `scoring.py` | [x] | 1,444 eligible cells; 15 zones; web/ 1.7 MB; commit `data/processed/` |
 | 4 | `tests/*`, CI | ☐ | |
 | 5 | `app.py`, `.streamlit/config.toml` | ☐ | deploy + record |

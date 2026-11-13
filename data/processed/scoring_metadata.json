@@ -1,0 +1,128 @@
+{
+  "pipeline_version": "1.0.0",
+  "created_utc": "2026-11-13T01:10:54Z",
+  "crs_analysis": "EPSG:27700",
+  "grid_cell_m": 250,
+  "weights": {
+    "thermal": 0.5,
+    "distance": 0.25,
+    "impervious": 0.25
+  },
+  "bounds": {
+    "thermal": [
+      0.0,
+      2.596482825279234
+    ],
+    "distance_m": [
+      200.0,
+      600.0
+    ],
+    "impervious": [
+      0.2,
+      0.9
+    ]
+  },
+  "eligibility": {
+    "n_cells": 4443,
+    "n_urban": 1748,
+    "n_eligible": 1444,
+    "excluded_by_reason": {
+      "not_urban": 2394,
+      "water": 225,
+      "already_green": 208,
+      "non_plantable_landuse": 96,
+      "edge_cell": 74,
+      "insufficient_lst": 2
+    }
+  },
+  "topk": {
+    "k": 15,
+    "min_separation_m": 500.0
+  },
+  "sensitivity": {
+    "jaccard_min": 0.5789473684210527,
+    "jaccard_mean": 0.8673245614035089,
+    "variants": [
+      {
+        "weight": "thermal",
+        "delta": -0.1,
+        "weights": {
+          "thermal": 0.4444444444444445,
+          "distance": 0.2777777777777778,
+          "impervious": 0.2777777777777778
+        },
+        "jaccard": 1.0
+      },
+      {
+        "weight": "thermal",
+        "delta": 0.1,
+        "weights": {
+          "thermal": 0.5454545454545454,
+          "distance": 0.22727272727272727,
+          "impervious": 0.22727272727272727
+        },
+        "jaccard": 0.875
+      },
+      {
+        "weight": "distance",
+        "delta": -0.1,
+        "weights": {
+          "thermal": 0.5555555555555556,
+          "distance": 0.16666666666666666,
+          "impervious": 0.2777777777777778
+        },
+        "jaccard": 0.5789473684210527
+      },
+      {
+        "weight": "distance",
+        "delta": 0.1,
+        "weights": {
+          "thermal": 0.45454545454545453,
+          "distance": 0.3181818181818181,
+          "impervious": 0.22727272727272727
+        },
+        "jaccard": 0.875
+      },
+      {
+        "weight": "impervious",
+        "delta": -0.1,
+        "weights": {
+          "thermal": 0.5555555555555556,
+          "distance": 0.2777777777777778,
+          "impervious": 0.16666666666666666
+        },
+        "jaccard": 0.875
+      },
+      {
+        "weight": "impervious",
+        "delta": 0.1,
+        "weights": {
+          "thermal": 0.45454545454545453,
+          "distance": 0.22727272727272727,
+          "impervious": 0.3181818181818181
+        },
+        "jaccard": 1.0
+      }
+    ]
+  },
+  "lst": {
+    "n_scenes_used": 12,
+    "date_range": [
+      "2019-06-28",
+      "2025-07-07"
+    ],
+    "mean_air_tmax_c": 20.008333333333333
+  },
+  "kpis": {
+    "peak_zone_anomaly_c": 3.9665870666503906,
+    "mean_top_zone_anomaly_c": 3.026627779006958,
+    "pct_urban_cells_beyond_doorstep": 5.720823798627003,
+    "top_zone_area_ha": 93.75
+  },
+  "inputs_sha256": {
+    "grid_features.parquet": "39fa2e408881fa68de44e02dd9b951c621759d30df1d96ffeeb1ee027d56e307",
+    "greenspace_dissolved.parquet": "d7ff20adeebd1ed07ad8821b2abe0fc5f77a3407268ef2e6104d63f3285022b1",
+    "cell_main_streets.parquet": "11799265adc5ffb815cf62896ba4096082d07cc0889a98e084e4d99ceedd7e4a",
+    "lst_scene_manifest.json": "9a62a968d0a5a7eaf40291285b03c9694414fbf0bde4a95a341ed626908d5d22"
+  }
+}
