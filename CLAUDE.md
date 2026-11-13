@@ -22,11 +22,11 @@
 
 \- `docs/TASKS.md`: Sequential build tickets. Update checkboxes (`\[x]`) as tickets finish.
 
-\- `src/edinburgh\_uhi/`: Core package (`config.py`, `ingest.py`, `spatial\_grid.py`, `scoring.py`, `app.py`).
+\- `src/edinburgh\_uhi/`: Core package (`config.py`, `ingest.py`, `spatial\_grid.py`, `scoring.py`, `app.py`) plus `ui/` (dashboard presentation layer: `theme`, `components`, `map\_view`, `model`, `panel`, `state`; see ARCHITECTURE §7.9).
 
 \- `data/raw/` \& `data/processed/`: Git-ignored GeoParquet/GeoTIFF caches. Always cache intermediate spatial layers so downstream runs don't re-hit external APIs.
 
-\- `tests/`: Pytest suite (`test\_crs.py`, `test\_scoring.py`).
+\- `tests/`: Pytest suite (`test\_crs.py`, `test\_scoring.py`, `test\_ui.py`; `test\_app.py` runs the dashboard via `AppTest` under `-m data`).
 
 
 
