@@ -8,6 +8,8 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "branca>=0.8.2",
+    "folium>=0.20.0",
     "geopandas>=1.2.0",
     "numpy>=2.5.4",
     "odc-geo>=0.5.4",
@@ -22,6 +24,8 @@ dependencies = [
     "requests>=2.34.2",
     "rioxarray>=0.23.0",
     "shapely>=2.2.0",
+    "streamlit>=1.67.0",
+    "streamlit-folium>=0.27.4",
     "xarray>=2026.9.0",
 ]
 
