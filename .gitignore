@@ -1,0 +1,14 @@
+# Python / tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+*.egg-info/
+
+# Raw data cache (ARCHITECTURE §2): ignore everything except the reproducibility anchor
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/lst_scene_manifest.json
+data/raw/.osmnx_cache/

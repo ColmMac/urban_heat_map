@@ -1,2 +1,3 @@
-def hello() -> str:
-    return "Hello from edinburgh-uhi!"
+"""Edinburgh Urban Heat Island & Green Space Optimizer."""
+
+__version__ = "1.0.0"

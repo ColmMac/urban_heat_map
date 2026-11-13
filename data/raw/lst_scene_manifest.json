@@ -1,0 +1,174 @@
+{
+  "created_utc": "2026-11-13T00:43:47Z",
+  "stac_url": "https://planetarycomputer.microsoft.com/api/stac/v1",
+  "collection": "landsat-c2-l2",
+  "query": {
+    "years": [
+      2019,
+      2025
+    ],
+    "months": [
+      6,
+      7,
+      8
+    ],
+    "max_scene_cloud": 40,
+    "min_scene_clear_frac": 0.5
+  },
+  "scenes": [
+    {
+      "id": "LC08_L2SP_205021_20190628_02_T1",
+      "datetime": "2019-06-28T11:15:48.846517+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 3.38,
+      "boundary_clear_frac": 0.9424,
+      "used": true,
+      "air_tmax_c": 20.6
+    },
+    {
+      "id": "LC08_L2SP_204021_20190723_02_T1",
+      "datetime": "2019-07-23T11:09:43.879779+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 26.74,
+      "boundary_clear_frac": 0.7072,
+      "used": true,
+      "air_tmax_c": 24.0
+    },
+    {
+      "id": "LC08_L2SP_205021_20210601_02_T1",
+      "datetime": "2021-06-01T11:15:40.104463+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 34.72,
+      "boundary_clear_frac": 0.7292,
+      "used": true,
+      "air_tmax_c": 20.9
+    },
+    {
+      "id": "LC08_L2SP_205021_20210719_02_T1",
+      "datetime": "2021-07-19T11:15:52.079753+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 28.22,
+      "boundary_clear_frac": 0.9361,
+      "used": true,
+      "air_tmax_c": 20.5
+    },
+    {
+      "id": "LC08_L2SP_205021_20210804_02_T1",
+      "datetime": "2021-08-04T11:16:00.137421+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 32.67,
+      "boundary_clear_frac": 0.2788,
+      "used": false,
+      "air_tmax_c": 20.6
+    },
+    {
+      "id": "LC08_L2SP_205021_20220604_02_T1",
+      "datetime": "2022-06-04T11:15:57.923896+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 0.28,
+      "boundary_clear_frac": 0.9813,
+      "used": true,
+      "air_tmax_c": 15.4
+    },
+    {
+      "id": "LC08_L2SP_205021_20220620_02_T1",
+      "datetime": "2022-06-20T11:16:08.008234+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 8.14,
+      "boundary_clear_frac": 0.9472,
+      "used": true,
+      "air_tmax_c": 19.9
+    },
+    {
+      "id": "LC09_L2SP_204021_20220707_02_T1",
+      "datetime": "2022-07-07T11:09:35.307320+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 4.47,
+      "boundary_clear_frac": 0.9675,
+      "used": true,
+      "air_tmax_c": 22.2
+    },
+    {
+      "id": "LC09_L2SP_204021_20220808_02_T1",
+      "datetime": "2022-08-08T11:09:53.247805+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 20.56,
+      "boundary_clear_frac": 0.0295,
+      "used": false,
+      "air_tmax_c": 20.8
+    },
+    {
+      "id": "LC09_L2SP_205021_20230615_02_T1",
+      "datetime": "2023-06-15T11:15:14.216687+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 0.05,
+      "boundary_clear_frac": 0.9519,
+      "used": true,
+      "air_tmax_c": 20.8
+    },
+    {
+      "id": "LC08_L2SP_204021_20230616_02_T1",
+      "datetime": "2023-06-16T11:09:12.333952+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 4.22,
+      "boundary_clear_frac": 0.9453,
+      "used": true,
+      "air_tmax_c": 21.4
+    },
+    {
+      "id": "LC09_L2SP_204021_20230811_02_T1",
+      "datetime": "2023-08-11T11:09:30.946650+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 19.45,
+      "boundary_clear_frac": 0.2454,
+      "used": false,
+      "air_tmax_c": 21.1
+    },
+    {
+      "id": "LC09_L2SP_205021_20240601_02_T1",
+      "datetime": "2024-06-01T11:15:17.526818+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 14.16,
+      "boundary_clear_frac": 0.9621,
+      "used": true,
+      "air_tmax_c": 19.1
+    },
+    {
+      "id": "LC08_L2SP_204021_20240602_02_T1",
+      "datetime": "2024-06-02T11:08:48.399058+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 28.76,
+      "boundary_clear_frac": 0.596,
+      "used": true,
+      "air_tmax_c": 17.2
+    },
+    {
+      "id": "LC09_L2SP_204021_20240829_02_T1",
+      "datetime": "2024-08-29T11:09:31.224319+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 31.54,
+      "boundary_clear_frac": 0.3527,
+      "used": false,
+      "air_tmax_c": 17.4
+    },
+    {
+      "id": "LC09_L2SP_204021_20250629_02_T1",
+      "datetime": "2025-06-29T11:09:26.882386+00:00",
+      "platform": "landsat-9",
+      "eo_cloud_cover": 17.75,
+      "boundary_clear_frac": 0.1265,
+      "used": false,
+      "air_tmax_c": 22.9
+    },
+    {
+      "id": "LC08_L2SP_204021_20250707_02_T1",
+      "datetime": "2025-07-07T11:09:30.310828+00:00",
+      "platform": "landsat-8",
+      "eo_cloud_cover": 18.92,
+      "boundary_clear_frac": 0.8188,
+      "used": true,
+      "air_tmax_c": 18.1
+    }
+  ],
+  "n_solar_days_used": 12
+}

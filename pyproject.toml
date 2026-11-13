@@ -6,9 +6,48 @@ readme = "README.md"
 authors = [
     { name = "ColmMac", email = "colmmac7@gmail.com" }
 ]
-requires-python = ">=3.15"
-dependencies = []
+requires-python = ">=3.12"
+dependencies = [
+    "geopandas>=1.2.0",
+    "numpy>=2.5.4",
+    "odc-geo>=0.5.4",
+    "odc-stac>=0.5.3",
+    "osmnx>=2.1.1",
+    "pandas>=3.1.1",
+    "planetary-computer>=1.0.0",
+    "pyarrow>=26.0.1",
+    "pyproj>=3.8.0",
+    "pystac-client>=0.9.1",
+    "rasterio>=1.5.2",
+    "requests>=2.34.2",
+    "rioxarray>=0.23.0",
+    "shapely>=2.2.0",
+    "xarray>=2026.9.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "NPY"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra -m 'not network and not data'"
+markers = [
+  "network: requires internet access (STAC/Overpass)",
+  "data: requires cached files in data/raw or data/processed",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+]
