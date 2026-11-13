@@ -54,74 +54,84 @@ FELT_CSS = """
 html, body, [data-testid="stAppViewContainer"], .stApp {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-.block-container, [data-testid="stMainBlockContainer"] {
-  padding-top: 1.25rem; padding-bottom: 1rem; max-width: 98%;
+/* Full-bleed canvas: the map owns the whole viewport, nothing scrolls. */
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+  overflow: hidden !important; height: 100vh; margin: 0; padding: 0;
 }
-#MainMenu, footer, [data-testid="stToolbarActions"], [data-testid="stAppDeployButton"],
-[data-testid="stDecoration"] { display: none !important; }
-[data-testid="stHeader"] { background: transparent; }
-iframe { border: none !important; }
+[data-testid="stMainBlockContainer"], .block-container, [data-testid="block-container"] {
+  padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important;
+  height: 100vh;
+}
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] { gap: 0; }
+#MainMenu, footer, [data-testid="stToolbar"], [data-testid="stToolbarActions"],
+[data-testid="stAppDeployButton"], [data-testid="stDecoration"], [data-testid="stHeader"],
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] { display: none !important; }
+[data-testid="stElementContainer"]:has(iframe[title*="st_folium"]), .stCustomComponentV1 {
+  width: 100vw !important; height: 100vh !important; margin: 0 !important;
+}
 iframe[title*="st_folium"] {
-  border-radius: 14px; border: 1px solid rgba(255,255,255,.06) !important;
-  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  border: none !important; display: block; width: 100vw !important; height: 100vh !important;
 }
 
-/* Floating panels: KPI cards */
-[data-testid="stMetric"] {
-  background: #262626; border-radius: 12px; padding: 1rem 1.2rem;
-  border: 1px solid rgba(255,255,255,.05);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
+/* Floating master panel (st.container(key="felt_panel") -> .st-key-felt_panel) */
+.st-key-felt_panel {
+  position: fixed; top: 20px; left: 20px; z-index: 1000; width: 350px; max-height: 90vh;
+  overflow-y: auto; box-sizing: border-box; padding: 1rem 1.1rem 1.1rem;
+  background: rgba(38,38,38,.86); backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35);
+  scrollbar-width: thin; scrollbar-color: #525252 transparent;
 }
-[data-testid="stMetricLabel"] p {
-  font-size: .72rem; font-weight: 500; color: #A3A3A3; letter-spacing: .02em;
+.st-key-felt_panel [data-testid="stVerticalBlock"] { gap: .6rem; }
+.st-key-felt_panel hr { margin: .5rem 0; border: 0; border-top: 1px solid rgba(255,255,255,.1); }
+.st-key-felt_panel [data-testid="stMetric"] {
+  background: rgba(23,23,23,.75); border-radius: 10px; padding: .55rem .7rem;
+  border: 1px solid rgba(255,255,255,.06);
 }
-[data-testid="stMetricValue"] {
-  color: #FFFFFF; font-weight: 600; letter-spacing: -.02em; font-size: 1.6rem;
+.st-key-felt_panel [data-testid="stMetricLabel"] p {
+  font-size: .64rem; font-weight: 500; color: #A3A3A3; letter-spacing: .02em; line-height: 1.2;
 }
-[data-testid="stDataFrame"] {
-  border: 1px solid rgba(255,255,255,.08); border-radius: 12px; overflow: hidden;
+.st-key-felt_panel [data-testid="stMetricValue"] {
+  color: #FFFFFF; font-weight: 600; letter-spacing: -.02em; font-size: 1.05rem;
 }
-[data-testid="stExpander"] {
-  border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #171717;
+.st-key-felt_panel [data-testid="stDataFrame"] {
+  border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden;
 }
-[data-testid="stTabs"] button p { font-size: .8rem; font-weight: 600; }
-
-/* Sidebar */
-[data-testid="stSidebar"] {
-  background: #1F1F1F; border-right: none; box-shadow: 1px 0 10px rgba(0,0,0,.25);
+.st-key-felt_panel [data-testid="stExpander"] {
+  border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: rgba(23,23,23,.6);
 }
-[data-testid="stSidebar"] hr { margin: .9rem 0; border: 0; border-top: 1px solid #333; }
+.st-key-felt_panel [data-testid="stTabs"] button p { font-size: .75rem; font-weight: 600; }
+.st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: .7rem; }
 .uhi-side-h {
   font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
   color: #A3A3A3; margin: .25rem 0 .55rem;
 }
 
 /* Hero */
-.uhi-hero {
-  display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem;
-  flex-wrap: wrap; padding: .5rem 0; margin-bottom: 1rem;
-}
+.uhi-hero { padding: 0; margin: 0; }
 .uhi-eyebrow {
   font-size: .7rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
   color: #3B82F6; display: flex; align-items: center; gap: .5rem;
 }
 .uhi-dot { width: 8px; height: 8px; border-radius: 50%; background: #3B82F6; }
 .uhi-hero h1 {
-  font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; margin: .2rem 0 .15rem;
-  padding: 0; color: #FFFFFF;
+  font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.02em;
+  margin: .3rem 0 .3rem; padding: 0; color: #FFFFFF;
 }
-.uhi-hero p { color: #A3A3A3; margin: 0; font-size: .92rem; }
-.uhi-chips { display: flex; gap: .4rem; flex-wrap: wrap; }
+.uhi-hero p { color: #A3A3A3; margin: 0; font-size: .74rem; line-height: 1.4; }
+.uhi-chips { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .6rem; }
 .uhi-chip {
   border: 1px solid rgba(255,255,255,.1); background: #262626; border-radius: 999px;
-  padding: .25rem .7rem; font-size: .75rem; color: #D4D4D4; white-space: nowrap;
+  padding: .15rem .55rem; font-size: .68rem; color: #D4D4D4; white-space: nowrap;
 }
 .uhi-chip b { color: #FFFFFF; }
 
 /* Inspector card */
 .uhi-insp {
   background: #262626; border: 1px solid rgba(255,255,255,.05); border-radius: 12px;
-  padding: 1.1rem 1.2rem; margin-bottom: .8rem; color: #FFFFFF;
+  padding: .85rem .95rem; margin-bottom: .3rem; color: #FFFFFF;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
 }
 .uhi-insp-top {
@@ -223,7 +233,7 @@ ESRI_URL = (
 COMPONENT_COLUMNS = ["c_thermal", "c_distance", "c_impervious"]
 SCORE_COLUMNS = ["s_thermal", "s_distance", "s_impervious"]
 DEFAULT_WEIGHTS = (config.WEIGHTS.thermal, config.WEIGHTS.distance, config.WEIGHTS.impervious)
-MAP_HEIGHT_PX = 680
+MAP_HEIGHT_PX = 900  # nominal; CSS stretches the st_folium iframe to 100vh x 100vw
 
 # Palette (kept in sync with .streamlit/config.toml)
 BG = "#171717"
@@ -460,6 +470,7 @@ MAP_CSS = f"""
 <style>
 .leaflet-container {{ background: {BG}; font-family: Inter, ui-sans-serif, system-ui,
   -apple-system, "Segoe UI", Roboto, sans-serif; }}
+.leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left {{ margin-left: 390px; }}
 .leaflet-bar {{ border: 1px solid {BORDER} !important; border-radius: 10px !important;
   overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,.45) !important; }}
 .leaflet-bar a, .leaflet-bar a:hover {{ background: {PANEL}; color: {TEXT};
@@ -513,7 +524,7 @@ MAP_CSS = f"""
   border: 2px solid {ACCENT}; animation: uhiPulse 2.4s ease-out infinite; }}
 @keyframes uhiPulse {{ 0% {{ transform: scale(1); opacity: .8; }}
   100% {{ transform: scale(2.1); opacity: 0; }} }}
-.uhi-legend {{ position: absolute; left: 12px; bottom: 28px; z-index: 1000; width: 250px;
+.uhi-legend {{ position: absolute; right: 12px; bottom: 34px; z-index: 1000; width: 250px;
   background: rgba(11,15,25,.9); border: 1px solid {BORDER}; border-radius: 12px;
   padding: 10px 12px; color: {TEXT}; font: 12px/1.35 Inter, system-ui, sans-serif;
   box-shadow: 0 12px 32px rgba(0,0,0,.5); backdrop-filter: blur(6px); }}
@@ -748,24 +759,24 @@ def render_hero(meta: dict[str, Any], weights: Weights, k: int) -> None:
 
 
 def render_kpis(meta: dict[str, Any], n_zones: int) -> None:
-    """Four KPI cards, all values read from ``scoring_metadata.json``."""
+    """Four KPI cards (2 x 2), all values read from ``scoring_metadata.json``."""
     kpis, lst = meta["kpis"], meta.get("lst") or {}
-    c1, c2, c3, c4 = st.columns(4)
+    (c1, c2), (c3, c4) = st.columns(2, gap="small"), st.columns(2, gap="small")
     c1.metric(
-        "Peak zone heat anomaly",
+        "Peak zone anomaly",
         f"+{kpis['peak_zone_anomaly_c']:.1f} °C",
         help="Median summer daytime surface-temperature anomaly of the hottest top-ranked cell, "
         "vs. a typical Edinburgh street.",
     )
     c2.metric(
-        "Blocks beyond 200 m of a park",
+        "Blocks > 200 m from park",
         f"{kpis['pct_urban_cells_beyond_doorstep']:.0f} %",
         help="Urban blocks more than 200 m from a ≥ 0.5 ha greenspace (Natural England's "
         "doorstep standard).",
     )
     c3.metric(
-        "Recommended for greening",
-        f"{n_zones} zones · {n_zones * CELL_AREA_HA:.0f} ha",
+        "Recommended zones",
+        f"{n_zones} · {n_zones * CELL_AREA_HA:.0f} ha",
     )
     scenes = lst.get("n_scenes_used")
     dates, air = lst.get("date_range"), lst.get("mean_air_tmax_c")
@@ -773,7 +784,7 @@ def render_kpis(meta: dict[str, Any], n_zones: int) -> None:
     if dates:
         help_txt = f"{dates[0]} to {dates[1]}" + (f"; mean air Tmax {air:.1f} °C" if air else "")
     c4.metric(
-        "Clear-sky Landsat passes",
+        "Clear-sky passes",
         "n/a" if scenes is None else str(scenes),
         help=help_txt,
     )
@@ -866,7 +877,7 @@ def render_zone_table(zones: pd.DataFrame) -> None:
         st.dataframe(
             table,
             hide_index=True,
-            column_order=["Rank", "Zone", "Score", "LST", "Gap", "Sealed", "Street", "Action"],
+            column_order=["Rank", "Zone", "Score", "LST", "Gap"],
             width="stretch",
             height=35 * (len(table) + 1) + 3,
             column_config={
@@ -992,39 +1003,32 @@ def _side_heading(text: str) -> None:
 def render_controls(
     meta: dict[str, Any], demo: bool
 ) -> tuple[tuple[bool, bool, bool], Weights, int]:
-    """Sidebar control panel: layer toggles, model weights and K."""
-    with st.sidebar:
-        st.markdown("### 🛰️ Control panel")
-        _side_heading("Map layers")
-        show_heat = st.toggle("Surface heat anomaly", value=True, key="t_heat")
-        show_parks = st.toggle("Cooling greenspace", value=True, key="t_parks")
-        show_zones = st.toggle("Top greening zones", value=not demo, key="t_zones")
+    """Layer toggles, model weights and K; must be called inside the floating panel."""
+    _side_heading("Map layers")
+    show_heat = st.toggle("Surface heat anomaly", value=True, key="t_heat")
+    show_parks = st.toggle("Cooling greenspace", value=True, key="t_parks")
+    show_zones = st.toggle("Top 15 greening zones", value=not demo, key="t_zones")
 
-        st.divider()
-        _side_heading("Model weights")
-        raw = (
-            st.slider("🔥 Heat", 0.0, 1.0, DEFAULT_WEIGHTS[0], 0.05, key="w_thermal"),
-            st.slider("🌳 Park gap", 0.0, 1.0, DEFAULT_WEIGHTS[1], 0.05, key="w_distance"),
-            st.slider("🧱 Sealed surface", 0.0, 1.0, DEFAULT_WEIGHTS[2], 0.05, key="w_impervious"),
-        )
-        weights = normalise_weights(raw)
-        if sum(raw) <= 0:
-            st.warning("All weights are zero; using defaults.")
-        st.caption(
-            f"Normalised: heat {weights.thermal:.2f} · park gap {weights.distance:.2f} · "
-            f"sealed {weights.impervious:.2f}"
-        )
-
-        st.divider()
-        _side_heading("Zone selection")
-        k = st.slider("Zones (K)", 10, 15, config.TOPK_K, key="k_zones")
-        st.button("↺ Restore defaults", on_click=_reset_model, width="stretch")
-
-        st.divider()
-        st.caption(
-            "Live re-ranking. Robustness of the default top-15 to ±0.1 weight changes: "
-            f"mean Jaccard **{meta['sensitivity']['jaccard_mean']:.2f}**."
-        )
+    st.divider()
+    _side_heading("Model weights")
+    raw = (
+        st.slider("🔥 Heat", 0.0, 1.0, DEFAULT_WEIGHTS[0], 0.05, key="w_thermal"),
+        st.slider("🌳 Park gap", 0.0, 1.0, DEFAULT_WEIGHTS[1], 0.05, key="w_distance"),
+        st.slider("🧱 Sealed surface", 0.0, 1.0, DEFAULT_WEIGHTS[2], 0.05, key="w_impervious"),
+    )
+    weights = normalise_weights(raw)
+    if sum(raw) <= 0:
+        st.warning("All weights are zero; using defaults.")
+    st.caption(
+        f"Normalised: heat {weights.thermal:.2f} · park gap {weights.distance:.2f} · "
+        f"sealed {weights.impervious:.2f}"
+    )
+    k = st.slider("Zones (K)", 10, 15, config.TOPK_K, key="k_zones")
+    st.button("↺ Restore defaults", on_click=_reset_model, width="stretch")
+    st.caption(
+        "Live re-ranking. Robustness of the default top-15 to ±0.1 weight changes: "
+        f"mean Jaccard **{meta['sensitivity']['jaccard_mean']:.2f}**."
+    )
     return (show_heat, show_parks, show_zones), weights, k
 
 
@@ -1047,32 +1051,38 @@ def main() -> None:
     demo = str(st.query_params.get("demo", "0")) == "1"
     min_sep_m = float(meta["topk"]["min_separation_m"])
 
-    toggles, weights, k = render_controls(meta, demo)
-    render_hero(meta, weights, k)
+    # One floating master panel holds every control. The map is rendered after it, but the panel
+    # is `position: fixed`, so DOM order is irrelevant; `inspector_slot` is filled once the map
+    # has reported which cell was clicked.
+    with st.container(key="felt_panel"):
+        hero_slot = st.empty()
+        kpi_slot = st.container()
+        toggles, weights, k = render_controls(meta, demo)
+        scored, zones = rerank(layers["grid"], weights, k, min_sep_m)
+        with hero_slot.container():
+            render_hero(meta, weights, k)
+        with kpi_slot:
+            render_kpis(meta, len(zones))
+        inspector_slot = st.container()
+        with st.expander("Ranked zones", expanded=False):
+            render_zone_table(zones)
+        render_footer()
 
-    scored, zones = rerank(layers["grid"], weights, k, min_sep_m)
-    render_kpis(meta, len(zones))
-    st.write("")
-
-    map_col, side_col = st.columns([0.7, 0.3], gap="medium")
-    with map_col:
-        fmap = build_map(scored, zones, layers, toggles)
-        out = st_folium(
-            fmap,
-            height=MAP_HEIGHT_PX,
-            use_container_width=True,
-            returned_objects=["last_active_drawing"],
-            key="map",
-        )
+    fmap = build_map(scored, zones, layers, toggles)
+    out = st_folium(
+        fmap,
+        height=MAP_HEIGHT_PX,
+        width=None,
+        use_container_width=True,
+        returned_objects=["last_active_drawing"],
+        key="map",
+    )
     clicked = ((out or {}).get("last_active_drawing") or {}).get("properties", {}).get("cell_id")
     by_id = scored.set_index("cell_id", drop=False)
     selected_id = clicked if clicked in by_id.index else zones.iloc[0]["cell_id"]
 
-    with side_col:
+    with inspector_slot:
         render_inspector(by_id.loc[selected_id], zones, weights)
-        render_zone_table(zones)
-
-    render_footer()
 
 
 main()
