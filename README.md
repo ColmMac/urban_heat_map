@@ -39,59 +39,65 @@ $$S_i = 100 \times \left( w_{\text{thermal}} \cdot \tilde{T}_i + w_{\text{distan
    * **Thermal Anomaly ($\tilde{T}_i$, default weight `0.50`):** Summer Landsat 8/9 LST anomaly relative to the urban median, capped at the 95th percentile (`2.60 °C`).
    * **Park Access Gap ($\tilde{D}_i$, default weight `0.25`):** Euclidean distance in meters (`EPSG:27700`) to the nearest dissolved green space $\ge 5,000\text{ m}^2$.
    * **Impervious Surface Density ($\tilde{I}_i$, default weight `0.25`):** Combined building footprint and sealed surface fraction within the 250 m cell.
-3. **Spatial De-Clustering (NMS):** Greedy **Non-Maximum Suppression** with a **500 m minimum centroid separation** selects the Top $K$ (default $K = 15$) distinct intervention zones and assigns context-aware recommendations (*Street trees*, *Green roofs*, or
+3. **Spatial De-Clustering (NMS):** Greedy **Non-Maximum Suppression** with a **500 m minimum centroid separation** selects the Top $K$ (default $K = 15$) distinct intervention zones and assigns context-aware recommendations (*Street trees*, *Green roofs*, or *Depave & pocket park*).
 
-Setup & Usage (uv)
+---
 
-This project uses uv for deterministic Python 3.12 dependency management.
-1. Install Dependencies
-Bash
+## Setup & Usage (uv)
 
-git clone [https://github.com/ColmMac/urban_heat_map.git](https://github.com/ColmMac/urban_heat_map.git)
+This project uses [uv](https://docs.astral.sh/uv/) for deterministic Python 3.12 dependency management.
+
+### 1. Install Dependencies
+
+```bash
+git clone https://github.com/ColmMac/urban_heat_map.git
 cd urban_heat_map
 uv sync
+```
 
-2. Launch the Interactive Dashboard
+### 2. Launch the Interactive Dashboard
 
-Precomputed EPSG:4326 web layers are included in data/processed/web/, so the dashboard runs immediately without downloading raw satellite rasters:
-Bash
+Precomputed EPSG:4326 web layers are included in `data/processed/web/`, so the dashboard runs immediately without downloading raw satellite rasters:
 
+```bash
 uv run streamlit run src/edinburgh_uhi/app.py
+```
 
-(Tip: Append ?demo=1 to http://localhost:8501/?demo=1 to launch with the Top-K zones layer toggled off for presentation walkthroughs.)
-3. Re-Run the Full Geospatial Pipeline (Optional)
+> **Tip:** Open [`http://localhost:8501/?demo=1`](http://localhost:8501/?demo=1) to launch with the Top-K zones layer toggled off for presentation walkthroughs.
+
+The default basemap is Esri's keyless Dark Gray Canvas. To use CartoDB Dark Matter instead, set a `CARTO_API_KEY` environment variable or Streamlit secret.
+
+### 3. Re-Run the Full Geospatial Pipeline (Optional)
 
 To re-ingest raw OpenStreetMap vectors and Planetary Computer Landsat 8/9 + ESA WorldCover rasters from scratch:
-Bash
 
+```bash
 uv run python -m edinburgh_uhi.ingest --step all
 uv run python -m edinburgh_uhi.ingest --step validate
 uv run python -m edinburgh_uhi.spatial_grid
 uv run python -m edinburgh_uhi.scoring
+```
 
-4. Run Tests & Linting
-Bash
+### 4. Run Tests & Linting
 
-# Run the fast offline unit test suite (54 tests)
+```bash
+# Fast offline unit test suite (54 tests; runs in CI)
 uv run pytest
 
-# Include cached-data integration tests against data/processed/ (64 tests total)
+# Cached-data integration tests against data/processed/ (10 tests)
 uv run pytest -m data
 
-# Check code style and formatting
+# Code style and formatting
 uv run ruff check .
 uv run ruff format --check .
+```
 
-Data Attributions
+---
 
-    Vector Boundaries, Buildings, Parks & Streets: © OpenStreetMap contributors (via OSMnx).
+## Data Attributions
 
-    Land Surface Temperature (LST): USGS/NASA Landsat 8 & 9 Collection 2 Level-2 (via Microsoft Planetary Computer STAC).
-
-    Land Cover: ESA WorldCover 10 m 2021 (via Microsoft Planetary Computer STAC).
-
-
-<ElicitationsGroup message="Ready to wrap up your GitHub repo and LinkedIn launch?">
-  <Elicitation label="Draft a punchy LinkedIn post for the Edinburgh UHI demo" query="Write an authentic, punchy LinkedIn post showcasing my Edinburgh Urban Heat Island & Green Space Optimizer project, highlighting the real Edinburgh findings (Bankhead, Nicolson Street, Cowgate) and the geospatial Python stack."/>
-  <Elicitation label="Give me the git commands to commit README.md" query="Give me the exact git commands to add and commit README.md to main in C:\ip\urban_heat_map."/>
-</ElicitationsGroup>
+* **Vector Boundaries, Buildings, Parks & Streets:** © OpenStreetMap contributors (ODbL, via OSMnx).
+* **Land Surface Temperature (LST):** USGS/NASA Landsat 8 & 9 Collection 2 Level-2 (via Microsoft Planetary Computer STAC).
+* **Land Cover:** ESA WorldCover 10 m 2021 © ESA, CC BY 4.0 (via Microsoft Planetary Computer STAC).
+* **Air Temperature:** Open-Meteo (CC BY 4.0).
+* **Basemaps:** © Esri or © CARTO.

@@ -58,6 +58,14 @@ INTERVENTION_LABELS = {
     "street_trees": "Street trees",
     "depave_pocket_park": "Depave & pocket park",
 }
+EXCLUSION_LABELS = {  # scoring.eligibility() reason codes -> hover-card / inspector text
+    "edge_cell": "Mostly outside the city boundary",
+    "water": "Mostly water",
+    "non_plantable_landuse": "Non-plantable land use",
+    "not_urban": "Not urban fabric",
+    "already_green": "Already greenspace",
+    "insufficient_lst": "Too few clear-sky Landsat passes",
+}
 CELL_AREA_HA = config.GRID_CELL_M**2 / 10_000
 CARTO_ATTR = "© OpenStreetMap contributors © CARTO"
 CARTO_URL = "https://basemaps.cartocdn.com/rastertiles/{style}/{{z}}/{{x}}/{{y}}{{r}}.png?key={key}"
@@ -152,6 +160,11 @@ def _nullable(series: pd.Series) -> pd.Series:
     return series.astype(object).where(series.notna(), None)
 
 
+def exclusion_label(reasons: pd.Series) -> pd.Series:
+    """Human-readable exclusion reasons; unknown codes pass through, missing stays missing."""
+    return reasons.astype(object).map(lambda r: EXCLUSION_LABELS.get(r, r) if pd.notna(r) else r)
+
+
 def tooltip_props(scored: pd.DataFrame) -> pd.DataFrame:
     """Compact per-cell properties consumed by the JavaScript hover card.
 
@@ -168,7 +181,7 @@ def tooltip_props(scored: pd.DataFrame) -> pd.DataFrame:
             "pk": scored["nearest_park_name"].fillna("Unnamed greenspace").astype(str),
             "im": (scored["impervious_frac"] * 100).round().astype(int),
             "rc": _nullable(scored["recommendation"].where(eligible)),
-            "ex": _nullable(scored["exclusion_reason"].where(~eligible)),
+            "ex": _nullable(exclusion_label(scored["exclusion_reason"]).where(~eligible)),
         },
         index=scored.index,
     )
@@ -849,7 +862,8 @@ def inspector_html(selected: pd.Series, rank: int | None, weights: Weights) -> s
             f"{esc(selected['recommendation'])}</div>"
         )
     else:
-        reason = selected["exclusion_reason"] or "n/a"
+        code = selected["exclusion_reason"]
+        reason = EXCLUSION_LABELS.get(code, code) if code else "n/a"
         rec = f'<div class="uhi-insp-rec uhi-off"><span>Not eligible</span>{esc(reason)}</div>'
 
     return (
