@@ -639,8 +639,8 @@ Reads `grid_features.parquet`, `greenspace_dissolved.parquet`, `cell_main_street
 │            FOLIUM MAP  (height 620 px)                    │ 1  Gorgie      Street trees│
 │   • Heat anomaly grid (diverging, semi-transparent)       │ 2  Leith       Green roofs │
 │   • Cooling parks (green)                                 │ ...                        │
-│   • Top-15 zones: cyan outline + numbered pins            ├───────────────────────────┤
-│   • Street corridors: thick amber lines                   │ 🔍 Zone inspector          │
+│   • Top-15 zones: dashed outline + glowing orange pins    ├───────────────────────────┤
+│   • Street corridors: glowing cyan lines                  │ 🔍 Zone inspector          │
 │                                                           │ #1 Gorgie · Score 87       │
 │                                                           │ Heat        ███████░ 44/50 │
 │                                                           │ Park gap    █████░░ 21/25  │
@@ -656,7 +656,9 @@ Sidebar (collapsed by default):  Layers [toggles] · Tune the model [3 weight sl
 
 (KPI and table values in the wireframe are illustrative placeholders. The real ones come from `scoring_metadata.json` and `zones_web.parquet`.)
 
-Columns: `st.columns([0.68, 0.32])` under the KPI row.
+Columns: `st.columns([0.7, 0.3])` under the KPI row. The right column shows the inspector card first, then tabs for the ranked table and the score-breakdown chart.
+
+**Visual style (dark command center).** Palette: background `#0B0F19`, panels `#111827`, borders `#1F2937`, text `#F3F4F6`, accent `#F97316`. `app.py` injects CSS that tightens top padding to 1.5 rem, hides the Streamlit main menu, deploy button and footer (the sidebar toggle stays), styles KPI cards as translucent bordered tiles and adds sidebar section headings and dividers. Map height is 680 px in a rounded, bordered frame.
 
 ### 7.3 KPI cards (`st.metric`, values from `scoring_metadata.json` → `kpis`)
 
@@ -670,11 +672,11 @@ Columns: `st.columns([0.68, 0.32])` under the KPI row.
 ### 7.4 Map specification
 
 - `folium.Map(location=[55.9533, -3.1883], zoom_start=12, tiles=None, control_scale=True, prefer_canvas=True)`. `prefer_canvas` matters: thousands of polygons render far faster on canvas than as SVG.
-- Base tiles: `CartoDB dark_matter` (default, high contrast for video) and `CartoDB positron`, switchable via `folium.LayerControl(collapsed=True)`.
-- **Heat Anomaly layer** (`FeatureGroup("Surface heat anomaly")`): a `folium.GeoJson` choropleth of `grid_web`, *not* the `folium.plugins.HeatMap` kernel-density plugin. Our values are already gridded measurements, and KDE would invent spatial smoothing and lose the per-cell tooltip. Fill colour from `branca.colormap.LinearColormap` (blue → yellow → red) with domain `[p2, p98]` of `lst_anomaly_c`, `fillOpacity=0.55`, `weight=0`. Add the colormap legend with caption "Summer surface temperature vs. typical Edinburgh street (°C)".
-- **Existing Cooling Parks** (`FeatureGroup("Cooling greenspace ≥ 0.5 ha")`): fill `#2ecc71`, `fillOpacity=0.35`, `weight=0.5`; tooltip `name`, `area_ha`.
-- **Top 15 Recommended Zones** (`FeatureGroup("Top 15 greening zones")`): cell outlines `color="#00E5FF"`, `weight=3`, `fillOpacity=0.1`; a `folium.Marker` with a `DivIcon` badge showing `zone_rank` at each centroid; corridor lines from `corridors_web` filtered to the selected `cell_id`s, `color="#FFB000"`, `weight=6`, `opacity=0.95`.
-- **Tooltips** (`folium.GeoJsonTooltip`, `sticky=True`) on the heat layer:
+- Base tiles: dark base layer by default, light alternative, switchable via `folium.LayerControl(collapsed=True)`. Only the first base layer is added with `show=True`. With a `CARTO_API_KEY` (env var or Streamlit secret) these are CartoDB Dark Matter / Positron (`basemaps.cartocdn.com/rastertiles/{style}/…?key=`). Since late 2026 CARTO serves a watermark tile without a key, so without one the app falls back to Esri's keyless Dark/Light Gray Canvas, with Esri's dark reference labels in a custom pane above the choropleth.
+- **Heat Anomaly layer** (`FeatureGroup("Surface heat anomaly")`): a `folium.GeoJson` choropleth of `grid_web`, *not* the `folium.plugins.HeatMap` kernel-density plugin. Our values are already gridded measurements, and KDE would invent spatial smoothing and lose the per-cell tooltip. Fill colour from `branca.colormap.LinearColormap` (cool blue → slate at 0 °C → amber → orange → crimson) with domain `[p2, p98]` of `lst_anomaly_c` (forced to straddle 0). `fillOpacity` scales with the anomaly (≈0.28 at 0 °C up to 0.78 at p98) so hot cells glow through the dark basemap, `weight=0`. A custom dark HTML legend (gradient plus greenspace/corridor/zone keys) replaces the branca legend.
+- **Existing Cooling Parks** (`FeatureGroup("Cooling greenspace ≥ 0.5 ha")`): emerald fill `#10B981`, `fillOpacity=0.24`, `weight=0.6`; dark hover card with `name`, `area_ha`.
+- **Top 15 Recommended Zones** (`FeatureGroup("Top 15 greening zones")`): dashed light cell outlines with a faint orange fill; a GeoJSON point layer of `DivIcon` pins (orange glow plus pulse; the top 3 are filled) carrying `cell_id`, so clicking a pin drives the inspector; corridor lines from `corridors_web` filtered to the selected `cell_id`s in cyan `#22D3EE` (weight 4, with a soft weight-14 glow underlay).
+- **Tooltips:** dark HTML hover cards bound in `onEachFeature` (`folium.JsCode`) on the heat, zone, pin, park and corridor layers. Each card shows neighbourhood, street, a priority-score badge coloured by tier, the LST anomaly, park gap, impervious share, nearest park and the recommended intervention (or the exclusion reason). Content:
 
 | Field | Alias | Format |
 |-------|-------|--------|
@@ -685,22 +687,22 @@ Columns: `st.columns([0.68, 0.32])` under the KPI row.
 | `priority_score` | Greening priority | `81 / 100` |
 | `recommendation` | Suggested action | text (only if eligible) |
 
-  Pre-format these as string columns in a cached loader (`tt_heat`, `tt_park`, …). `GeoJsonTooltip` can't format numbers itself.
+  Features carry compact raw properties (`tooltip_props`: `nb, st, ps, an, pd, pk, im, rc, ex`), and the browser formats them, which keeps the payload small. The card builder is inlined in each `onEachFeature` because streamlit-folium does not execute header `<script>` tags.
 - `fit_bounds` to the urban cells' extent.
 
 ### 7.5 Interactivity
 
 - **Layer toggles:** three `st.sidebar.toggle`s (heat, parks, zones) decide which FeatureGroups get built. The sidebar is visible on video in a way Leaflet's control isn't. Default all on. `?demo=1` (via `st.query_params`) starts with zones **off**, so the recording can "reveal" them.
 - **Cell / zone inspection:** `st_folium(m, height=620, use_container_width=True, returned_objects=["last_active_drawing"], key="map")`. Limiting `returned_objects` matters: without it, every pan and zoom triggers a full Streamlit rerun and the map flickers on video. When `last_active_drawing` has a `cell_id`, the inspector panel shows:
-  `st.subheader(f"#{rank} {neighbourhood} · Score {score:.0f}")`, three `st.progress` bars with captions for `c_thermal/50`, `c_distance/25`, `c_impervious/25` (denominators = current weights × 100), and the `recommendation` text.
+  a dark HTML card with the rank, neighbourhood and street, a tier-coloured score badge, LST anomaly / park gap / impervious tiles, three component bars for `c_thermal/50`, `c_distance/25`, `c_impervious/25` (denominators = current weights × 100), and the `recommendation` text.
   Default when nothing is clicked: zone #1.
-- **Ranked table:** `st.dataframe(zones[["zone_rank","neighbourhood","intervention","priority_score"]], hide_index=True, height=…)` with `column_config` (a `ProgressColumn` for score, readable intervention labels).
-- **Tune the model (optional, collapsed):** three sliders (0–1, step 0.05) auto-normalised to sum 1, plus a K slider (10–15, default 15). On change: `P = 100·Σ w·s_*` recomputed from the stored `s_thermal/s_distance/s_impervious` columns (normalisation doesn't depend on the weights), then `scoring.select_top_zones(...)` with `cx_m, cy_m`. Corridors are re-filtered from `corridors_web`. No network, no geometry ops. Show `st.caption("Live re-ranking; robustness of default top-15 to ±0.1 weight changes: mean Jaccard {x:.2f}")`.
+- **Ranked table:** `st.dataframe` of rank, zone, priority (`ProgressColumn`), LST Δ (`%+.1f °C`), park gap (`%.0f m`), impervious (`%.0f %`), street and intervention, with the numeric columns first. A sibling tab holds a dark Altair stacked horizontal bar chart of the per-component contributions with score totals (`theme=None`, background `#0B0F19`).
+- **Control panel (sidebar, collapsed by default):** Map layers / Model weights / Zone selection sections separated by dividers. Three sliders (0–1, step 0.05) auto-normalised to sum 1, plus a K slider (10–15, default 15). On change: `P = 100·Σ w·s_*` recomputed from the stored `s_thermal/s_distance/s_impervious` columns (normalisation doesn't depend on the weights), then `scoring.select_top_zones(...)` with `cx_m, cy_m`. Corridors are re-filtered from `corridors_web`. No network, no geometry ops. Show `st.caption("Live re-ranking; robustness of default top-15 to ±0.1 weight changes: mean Jaccard {x:.2f}")`.
 
 ### 7.6 Performance and caching
 
-- `@st.cache_data` loaders for each `web/*.parquet` and the metadata JSON; tooltip strings are precomputed in the same loader.
-- Build the Folium map in a function decorated with `@st.cache_resource`, keyed on `(layer toggles, weights tuple, k)`. Streamlit hashes these arguments.
+- `@st.cache_data` loaders for each `web/*.parquet` and the metadata JSON.
+- Build a **fresh** Folium map on every rerun. Do not cache the `folium.Map` object: streamlit-folium 0.27 leaves stale `geo_json_<hash>` names in its script when the same object renders twice, and the map goes blank after a click-triggered rerun. Construction is cheap, and serialisation runs every rerun anyway.
 - Payload budget: grid ≤ ~2,500 polygons with ≤ 8 tooltip properties; parks simplified; total GeoJSON sent to the browser ≲ 4 MB.
 - Import guard at the top of `app.py`: if `import edinburgh_uhi` fails (e.g. the host didn't install the project itself), prepend `Path(__file__).resolve().parents[1]` (the `src/` dir) to `sys.path`. This keeps `streamlit run src/edinburgh_uhi/app.py` working whether or not the package is installed.
 
@@ -713,13 +715,19 @@ Columns: `st.columns([0.68, 0.32])` under the KPI row.
 ```toml
 [theme]
 base = "dark"
-primaryColor = "#00E5FF"
+primaryColor = "#F97316"
+backgroundColor = "#0B0F19"
+secondaryBackgroundColor = "#111827"
+textColor = "#F3F4F6"
+
+[client]
+toolbarMode = "minimal"
 
 [server]
 headless = true
 ```
 
-- No secrets required.
+- No secrets required. An optional `CARTO_API_KEY` secret switches the basemap to CartoDB Dark Matter; without it the keyless Esri dark canvas is used.
 
 ### 7.8 The 15-second recording script
 
@@ -727,7 +735,7 @@ headless = true
 |-------|--------|---------------------|
 | 0–2 | Page loaded with `?demo=1`, sidebar collapsed | Title, 4 KPI cards, city-wide heat grid on dark basemap |
 | 2–6 | Scroll-zoom into the inner west / Leith; hover a red cell | Tooltip: "+3.8 °C · 540 m to greenspace · 81/100" |
-| 6–9 | Open sidebar, flip **Top 15 greening zones** on, close sidebar | Numbered cyan zones and amber street corridors appear |
+| 6–9 | Open sidebar, flip **Top 15 greening zones** on, close sidebar | Glowing numbered zone pins and cyan street corridors appear |
 | 9–15 | Click zone #1 | Inspector: score bars plus "Street-tree corridor along …" |
 
 Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
