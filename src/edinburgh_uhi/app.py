@@ -106,10 +106,14 @@ iframe[title*="st_folium"] {
 .st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: .7rem; }
 /* Phones: the panel becomes a short bottom sheet so the map stays visible above it. */
 @media (max-width: 768px) {
-  .st-key-felt_panel {
-    top: auto; bottom: 0; left: 0; right: 0; width: 100%; max-height: 38vh;
-    border-radius: 14px 14px 0 0; padding: .75rem .9rem 1rem;
-    border-bottom: 0; overscroll-behavior: contain;
+  .st-key-felt_panel, div.st-key-felt_panel[data-testid="stVerticalBlock"] {
+    position: fixed !important; top: auto !important; bottom: 0 !important;
+    left: 0 !important; right: auto !important; width: 100vw !important;
+    max-width: 100vw !important; height: auto !important;
+    max-height: 40vh !important; max-height: 40dvh !important;
+    border-radius: 20px 20px 0 0 !important; z-index: 9999 !important;
+    overflow-y: auto !important; padding: .75rem .9rem 2rem !important;
+    border-bottom: 0 !important; overscroll-behavior: contain;
   }
   .uhi-hero p, .uhi-eyebrow { display: none; }
   .uhi-hero h1 { font-size: 1.05rem; margin: 0 0 .2rem; }
@@ -491,7 +495,7 @@ html, body {{ margin: 0; height: 100%; overflow: hidden; }}
 .folium-map, .leaflet-container {{ width: 100% !important; height: 100vh !important; }}
 @media (max-width: 768px) {{
   .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left {{ margin-left: 0; }}
-  .leaflet-bottom {{ bottom: 38vh; }}
+  .leaflet-bottom {{ bottom: 40vh; bottom: 40dvh; }}
   .uhi-legend {{ display: none; }}
 }}
 .leaflet-bar {{ border: 1px solid {BORDER} !important; border-radius: 10px !important;
