@@ -12,3 +12,7 @@ data/raw/*
 !data/raw/.gitkeep
 !data/raw/lst_scene_manifest.json
 data/raw/.osmnx_cache/
+
+# Generated geospatial caches
+*.parquet
+*.tif
