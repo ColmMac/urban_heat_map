@@ -659,7 +659,7 @@ Sidebar (collapsed by default):  Layers [toggles] · Tune the model [3 weight sl
 
 Columns: `st.columns([0.7, 0.3])` under the KPI row. The right column shows the inspector card first, then tabs for the ranked table and the score-breakdown chart.
 
-**Visual style (dark command center).** Palette: background `#0B0F19`, panels `#111827`, borders `#1F2937`, text `#F3F4F6`, accent `#F97316`. `app.py` injects CSS that tightens top padding to 1.5 rem, hides the Streamlit main menu, deploy button and footer (the sidebar toggle stays), styles KPI cards as translucent bordered tiles and adds sidebar section headings and dividers. Map height is 680 px in a rounded, bordered frame.
+**Visual style (dark command center).** Colours come from the design tokens in `ui/theme.py` (§7.9): ink background `#0B0F14`, panel `#121820`, cards `#1A222C`, text `#E7EBF0`, with saturated colour reserved for data (heat `#F97316`, greenspace `#10B981`, corridors `#22D3EE`). `app.py` injects CSS that tightens top padding to 1.5 rem, hides the Streamlit main menu, deploy button and footer (the sidebar toggle stays), styles KPI cards as translucent bordered tiles and adds sidebar section headings and dividers. Map height is 680 px in a rounded, bordered frame.
 
 ### 7.3 KPI cards (`st.metric`, values from `scoring_metadata.json` → `kpis`)
 
@@ -759,6 +759,13 @@ Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
 - Widgets are created with `key=` only, never `value=`. The app reads settings through `model_from_state`, not from widget return values.
 - `st_folium(..., key="map")` copies each click into the plain key `st.session_state["map"]` through its `on_change` callback, before the rerun the click triggers. `consume_map_click` runs before anything is drawn and turns a *new* `last_active_drawing.cell_id` into `sel_cell`. The selection therefore persists across weight changes (falling back to zone #1 only if the cell disappears), and the panel renders in one top-to-bottom pass.
 - Widget keys (`w_*`, `k_zones`, `t_*`, `map`) are a contract: tests and deep-links depend on them.
+
+**Design tokens.** `theme.TOKENS` is the only place a colour is defined. Chrome is monochrome ink (the primary colour is the text colour, so sliders and toggles are near-white); saturated colour is reserved for data meaning (heat ramp, greenspace, corridors, sealed ground), and zone ranks are heat-orange everywhere.
+- Stylesheets and the hover-card JS use `var(--token)`. `css_vars()` is injected into the page *and* into the st_folium iframe, which is a separate document and also loads Inter itself.
+- Python-side aliases (`BG`, `ACCENT`, `EMERALD`, `HEAT_RAMP`, …) cover what cannot resolve CSS variables: Leaflet canvas fills (`prefer_canvas=True`), the branca colormap, Altair specs and inline styles built in Python.
+- `.streamlit/config.toml` mirrors the surface/text tokens and loads Inter (`font = "Inter:<url>"`).
+- Selectors that reach into Streamlit's internal widget DOM live in one marked block in `FELT_CSS` (currently: the toggle knob turns ink when on, because the track is near-white). Re-check that block after any Streamlit upgrade.
+- `tests/test_ui.py` fails on raw hex in the stylesheets or hover-card JS, on `var(--x)` references to unknown tokens, and on `config.toml` drifting from the tokens.
 
 ---
 

@@ -157,7 +157,7 @@ def breakdown_chart(zones: pd.DataFrame) -> alt.LayerChart:
             titleFontWeight="normal",
         )
         .configure_axisY(grid=False, labelLimit=170)
-        .configure_legend(labelColor="#D1D5DB", labelFontSize=11, symbolType="square")
+        .configure_legend(labelColor=TEXT, labelFontSize=11, symbolType="square")
     )
 
 

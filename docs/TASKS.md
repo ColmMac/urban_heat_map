@@ -437,8 +437,8 @@ uv run pytest
 
 - [x] **Phase 0 — Safety net.** Split `app.py` into `ui/theme.py`, `ui/components.py` (pure HTML/chart builders), `ui/map_view.py`, `ui/model.py`, `ui/panel.py`, `ui/state.py`. Add `tests/test_ui.py` (offline) and `tests/test_app.py` (`AppTest`, `-m data`). No visual change.
 - [x] **Phase 1 — State-first.** `init_state` / `consume_map_click` / `model_from_state`; widgets use `key=` only; the panel renders top to bottom in one pass (no deferred slots). No visual change, except that a selected cell now stays selected after a weight change instead of falling back to zone #1.
-- [ ] **Phase 2 — Design tokens.** One `TOKENS` dict injected into the page and the map iframe; richer `config.toml` theme; replace hard-coded hex values in CSS, hover-card JS and Altair.
-- [ ] **Phase 3 — Panel layout.** Header + HTML KPI strip + peek card + `st.segmented_control` sections (Zone / Tune / Rank / About); `:has()`-driven bottom sheet; weight-mix bar, coloured sliders, K selector; HTML ranked list + CSV download. Extend `test_app.py` with the "weights survive a section switch" test. Streamlit 1.67 sliders are react-aria: target `.st-key-<key> input[type="range"]` and its thumb, not `[role="slider"]`.
+- [x] **Phase 2 — Design tokens.** One `TOKENS` dict injected into the page and the map iframe; richer `config.toml` theme (Inter, radius, border, dataframe colours); hard-coded hex removed from CSS, hover-card JS and Altair; token tests in `test_ui.py`. Monochrome primary needed one widget-internals rule (ink knob on an "on" toggle).
+- [ ] **Phase 3 — Panel layout.** Header + HTML KPI strip + peek card + `st.segmented_control` sections (Zone / Tune / Rank / About); `:has()`-driven bottom sheet; weight-mix bar, coloured sliders, K selector; HTML ranked list + CSV download. Extend `test_app.py` with the "weights survive a section switch" test. Streamlit 1.67 sliders are react-aria: target `.st-key-<key> input[type="range"]` and its thumb, not `[role="slider"]`. Known bug to fix with the new header: on phones `.uhi-eyebrow` is meant to be hidden, but the later `.uhi-eyebrow { display: flex }` rule overrides the media query.
 - [ ] **Phase 4 — Map.** Touch media queries (`hover: none`), `dvh`, `ResponsiveFit` fit-bounds macro, compact mobile legend, reduced motion; spike `feature_group_to_add` so weight changes stop reloading the map.
 - [ ] **Phase 5 — Polish & QA.** Focus rings, contrast, iOS Safari / Android Chrome checks, Streamlit Cloud redeploy.
 
@@ -455,4 +455,4 @@ uv run pytest
 | 3 | `scoring.py` | [x] | 1,444 eligible cells; 15 zones; web/ 1.7 MB; commit `data/processed/` |
 | 4 | `tests/*`, CI | [x] | 54 offline tests + 10 `-m data` tests pass; `.github/workflows/ci.yml` created |
 | 5 | `app.py`, `.streamlit/config.toml` | [x] | dashboard built and smoke-tested; Streamlit Cloud deploy + recording still manual |
-| 6 | `app.py`, `ui/*`, `tests/test_ui.py`, `tests/test_app.py` | [ ] | Phases 0–1 done (module split, state-first); Phases 2–5 open |
+| 6 | `app.py`, `ui/*`, `tests/test_ui.py`, `tests/test_app.py` | [ ] | Phases 0–2 done (module split, state-first, design tokens); Phases 3–5 open |

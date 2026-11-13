@@ -1,44 +1,94 @@
-"""Colour palette and page stylesheet for the dashboard.
+"""Design tokens and page stylesheet for the dashboard.
 
-The palette constants are shared by the page CSS, the Folium map CSS, the hover-card JS and the
-Altair chart, so every surface draws from one place.
+``TOKENS`` is the single source of colour. It reaches every surface in one of two ways:
+
+* as CSS custom properties (``css_vars()``) injected into the page *and* into the Folium iframe
+  (a separate document), so stylesheets and the hover-card JS use ``var(--name)``;
+* as the Python constants below, for places that cannot resolve CSS variables: Leaflet's canvas
+  renderer (``prefer_canvas=True`` paints fills with raw colour strings), branca colormaps,
+  Altair specs and inline styles built in Python.
+
+Principle: the chrome is monochrome ink; saturated colour is reserved for data meaning (heat,
+greenspace, corridors, sealed ground), so a colour on screen always says something.
+``.streamlit/config.toml`` mirrors the surface and text tokens; ``tests/test_ui.py`` checks it.
 """
 
 from __future__ import annotations
 
 import streamlit as st
 
-# Palette (kept in sync with .streamlit/config.toml)
-BG = "#171717"
-PANEL = "#262626"
-BORDER = "#333333"
-TEXT = "#F3F4F6"
-MUTED = "#9CA3AF"
-ACCENT = "#F97316"
-AMBER = "#F59E0B"
-CRIMSON = "#DC2626"
-EMERALD = "#10B981"
-CORRIDOR = "#22D3EE"
-SLATE = "#64748B"
-COOL = "#3B82F6"
-HEAT_RAMP = [COOL, "#1E293B", AMBER, "#EA580C", CRIMSON]
+TOKENS: dict[str, str] = {
+    # Surfaces: elevation gets lighter (bg < surface < surface-2 < surface-3).
+    "bg": "#0B0F14",
+    "surface": "#121820",
+    "surface-2": "#1A222C",
+    "surface-3": "#28323E",
+    "border": "#232C37",
+    "line": "rgba(255,255,255,.08)",
+    "line-strong": "rgba(255,255,255,.14)",
+    # Text
+    "text-hi": "#F8FAFC",
+    "text": "#E7EBF0",
+    "muted": "#8A94A3",
+    "faint": "#5A6472",
+    "focus": "#93C5FD",
+    # Data semantics: the only saturated colours on screen.
+    "heat": "#F97316",
+    "heat-warm": "#F59E0B",
+    "heat-deep": "#EA580C",
+    "heat-hot": "#DC2626",
+    "heat-soft": "#FDBA74",
+    "heat-pale": "#FED7AA",
+    "green": "#10B981",
+    "green-line": "#34D399",
+    "green-pale": "#D1FAE5",
+    "corridor": "#22D3EE",
+    "sealed": "#94A3B8",
+    "cool": "#3B82F6",
+    "neutral": "#1E293B",  # heat-ramp midpoint (0 °C)
+    "nodata": "#374151",
+    # Elevation
+    "shadow-sm": "0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2)",
+    "shadow-lg": "0 16px 48px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3)",
+}
+
+INTER_CSS_URL = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+FONT_STACK = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+
+# Python-side aliases (canvas fills, colormaps, Altair, inline styles).
+BG = TOKENS["bg"]
+PANEL = TOKENS["surface-2"]
+BORDER = TOKENS["border"]
+TEXT = TOKENS["text"]
+MUTED = TOKENS["muted"]
+ACCENT = TOKENS["heat"]
+AMBER = TOKENS["heat-warm"]
+CRIMSON = TOKENS["heat-hot"]
+EMERALD = TOKENS["green"]
+EMERALD_LINE = TOKENS["green-line"]
+CORRIDOR = TOKENS["corridor"]
+SLATE = TOKENS["sealed"]
+COOL = TOKENS["cool"]
+NODATA = TOKENS["nodata"]
+HEAT_RAMP = [COOL, TOKENS["neutral"], AMBER, TOKENS["heat-deep"], CRIMSON]
 COMPONENTS = (  # (label, contribution column, colour)
     ("Heat", "c_thermal", ACCENT),
     ("Park gap", "c_distance", EMERALD),
     ("Sealed surface", "c_impervious", SLATE),
 )
 
-FELT_CSS = """
-<style>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
-html, body, [data-testid="stAppViewContainer"], .stApp {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-}
+def css_vars() -> str:
+    """``:root`` block declaring every token as a CSS custom property (``--name``)."""
+    return ":root{" + "".join(f"--{name}:{value};" for name, value in TOKENS.items()) + "}"
+
+
+FELT_CSS = """
 /* Full-bleed canvas: the map owns the whole viewport, nothing scrolls. */
 html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
   overflow: hidden !important; height: 100vh; margin: 0; padding: 0;
 }
+html, body, [data-testid="stAppViewContainer"], .stApp { background: var(--bg); }
 [data-testid="stMainBlockContainer"], .block-container, [data-testid="block-container"] {
   padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important;
   height: 100vh;
@@ -59,32 +109,42 @@ iframe[title*="st_folium"] {
 .st-key-felt_panel {
   position: fixed; top: 20px; left: 20px; z-index: 1000; width: 350px; max-height: 90vh;
   overflow-y: auto; box-sizing: border-box; padding: 1rem 1.1rem 1.1rem;
-  background: rgba(38,38,38,.86); backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-  border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.35);
-  scrollbar-width: thin; scrollbar-color: #525252 transparent;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), var(--shadow-lg);
+  scrollbar-width: thin; scrollbar-color: var(--faint) transparent;
 }
+/* --- Streamlit 1.67 widget internals (react-aria). Re-check these after any upgrade. --- */
+/* Monochrome primary: an "on" toggle has a light track, so its knob switches to ink. */
+.st-key-felt_panel label[data-selected="true"]:has(input[role="switch"]) > div:first-of-type > div {
+  background: var(--bg);
+}
+/* --- end widget internals --- */
+
 .st-key-felt_panel [data-testid="stVerticalBlock"] { gap: .6rem; }
-.st-key-felt_panel hr { margin: .5rem 0; border: 0; border-top: 1px solid rgba(255,255,255,.1); }
+.st-key-felt_panel hr { margin: .5rem 0; border: 0; border-top: 1px solid var(--line); }
 .st-key-felt_panel [data-testid="stMetric"] {
-  background: rgba(23,23,23,.75); border-radius: 10px; padding: .55rem .7rem;
-  border: 1px solid rgba(255,255,255,.06);
+  background: var(--surface-2); border-radius: 10px; padding: .55rem .7rem;
+  border: 1px solid var(--line);
 }
 .st-key-felt_panel [data-testid="stMetricLabel"] p {
-  font-size: .64rem; font-weight: 500; color: #A3A3A3; letter-spacing: .02em; line-height: 1.2;
+  font-size: .64rem; font-weight: 500; color: var(--muted); letter-spacing: .02em;
+  line-height: 1.2;
 }
 .st-key-felt_panel [data-testid="stMetricValue"] {
-  color: #FFFFFF; font-weight: 600; letter-spacing: -.02em; font-size: 1.05rem;
+  color: var(--text-hi); font-weight: 600; letter-spacing: -.02em; font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
 }
 .st-key-felt_panel [data-testid="stDataFrame"] {
-  border: 1px solid rgba(255,255,255,.08); border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
 }
 .st-key-felt_panel [data-testid="stExpander"] {
-  border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: rgba(23,23,23,.6);
+  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-2);
 }
 .st-key-felt_panel [data-testid="stTabs"] button p { font-size: .75rem; font-weight: 600; }
-.st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: .7rem; }
+.st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: .7rem; color: var(--muted); }
+.st-key-felt_panel :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Phones: the panel becomes a short bottom sheet so the map stays visible above it. */
 @media (max-width: 768px) {
   .st-key-felt_panel, div.st-key-felt_panel[data-testid="stVerticalBlock"] {
@@ -107,47 +167,52 @@ iframe[title*="st_folium"] {
 }
 .uhi-side-h {
   font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-  color: #A3A3A3; margin: .25rem 0 .55rem;
+  color: var(--muted); margin: .25rem 0 .55rem;
 }
 
 /* Hero */
 .uhi-hero { padding: 0; margin: 0; }
 .uhi-eyebrow {
   font-size: .7rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
-  color: #3B82F6; display: flex; align-items: center; gap: .5rem;
+  color: var(--muted); display: flex; align-items: center; gap: .5rem;
 }
-.uhi-dot { width: 8px; height: 8px; border-radius: 50%; background: #3B82F6; }
+.uhi-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--heat);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--heat) 70%, transparent);
+}
 .uhi-hero h1 {
   font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.02em;
-  margin: .3rem 0 .3rem; padding: 0; color: #FFFFFF;
+  margin: .3rem 0 .3rem; padding: 0; color: var(--text-hi);
 }
-.uhi-hero p { color: #A3A3A3; margin: 0; font-size: .74rem; line-height: 1.4; }
+.uhi-hero p { color: var(--muted); margin: 0; font-size: .74rem; line-height: 1.4; }
 .uhi-chips { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .6rem; }
 .uhi-chip {
-  border: 1px solid rgba(255,255,255,.1); background: #262626; border-radius: 999px;
-  padding: .15rem .55rem; font-size: .68rem; color: #D4D4D4; white-space: nowrap;
+  border: 1px solid var(--line-strong); background: var(--surface-2); border-radius: 999px;
+  padding: .15rem .55rem; font-size: .68rem; color: var(--text); white-space: nowrap;
 }
-.uhi-chip b { color: #FFFFFF; }
+.uhi-chip b { color: var(--text-hi); font-variant-numeric: tabular-nums; }
 
 /* Inspector card */
 .uhi-insp {
-  background: #262626; border: 1px solid rgba(255,255,255,.05); border-radius: 12px;
-  padding: .85rem .95rem; margin-bottom: .3rem; color: #FFFFFF;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: .85rem .95rem; margin-bottom: .3rem; color: var(--text-hi);
+  box-shadow: var(--shadow-sm);
 }
 .uhi-insp-top {
   display: flex; justify-content: space-between; gap: .8rem; align-items: flex-start;
 }
 .uhi-insp-k {
   font-size: .66rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-  color: #3B82F6;
+  color: var(--heat);
 }
-.uhi-insp-nb { font-size: 1.25rem; font-weight: 700; color: #FFFFFF; line-height: 1.2; }
-.uhi-insp-st { color: #A3A3A3; font-size: .85rem; }
+.uhi-insp-nb { font-size: 1.25rem; font-weight: 700; color: var(--text-hi); line-height: 1.2; }
+.uhi-insp-st { color: var(--muted); font-size: .85rem; }
 .uhi-insp-score {
-  text-align: center; border-radius: 10px; padding: .35rem .7rem; color: #fff; min-width: 64px;
+  text-align: center; border-radius: 10px; padding: .35rem .7rem; color: var(--text-hi);
+  min-width: 64px;
 }
-.uhi-insp-score b { display: block; font-size: 1.6rem; line-height: 1.1; }
+.uhi-insp-score b { display: block; font-size: 1.6rem; line-height: 1.1;
+  font-variant-numeric: tabular-nums; }
 .uhi-insp-score span {
   font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; opacity: .85;
 }
@@ -155,47 +220,50 @@ iframe[title*="st_folium"] {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin: .85rem 0;
 }
 .uhi-insp-stats div {
-  background: #171717; border: 1px solid rgba(255,255,255,.06); border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   padding: .45rem .55rem;
 }
 .uhi-insp-stats span {
   display: block; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
-  color: #737373;
+  color: var(--faint);
 }
-.uhi-insp-stats b { font-size: .98rem; color: #FFFFFF; }
-.uhi-bar { margin: .4rem 0; font-size: .75rem; color: #D4D4D4; }
+.uhi-insp-stats b { font-size: .98rem; color: var(--text-hi); font-variant-numeric: tabular-nums; }
+.uhi-bar { margin: .4rem 0; font-size: .75rem; color: var(--text); }
 .uhi-bar-row { display: flex; justify-content: space-between; }
-.uhi-bar-row span:last-child { color: #A3A3A3; }
+.uhi-bar-row span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
 .uhi-bar-track {
-  height: 6px; border-radius: 3px; background: #404040; margin-top: 3px; overflow: hidden;
+  height: 6px; border-radius: 3px; background: var(--surface-3); margin-top: 3px;
+  overflow: hidden;
 }
 .uhi-bar-fill { height: 100%; border-radius: 3px; }
 .uhi-insp-rec {
-  margin-top: .8rem; border-left: 3px solid #10B981; background: rgba(16,185,129,.08);
-  border-radius: 8px; padding: .55rem .75rem; color: #D1FAE5; font-size: .85rem;
+  margin-top: .8rem; border-left: 3px solid var(--green);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-radius: 8px; padding: .55rem .75rem; color: var(--green-pale); font-size: .85rem;
 }
 .uhi-insp-rec span {
   display: block; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
-  color: #10B981; font-weight: 600;
+  color: var(--green); font-weight: 600;
 }
 .uhi-insp-rec.uhi-off {
-  border-left-color: #525252; background: rgba(82,82,82,.18); color: #A3A3A3;
+  border-left-color: var(--faint); background: color-mix(in srgb, var(--faint) 18%, transparent);
+  color: var(--muted);
 }
-.uhi-insp-rec.uhi-off span { color: #A3A3A3; }
-.uhi-hint { color: #737373; font-size: .75rem; margin: -.3rem 0 .6rem; }
+.uhi-insp-rec.uhi-off span { color: var(--muted); }
+.uhi-hint { color: var(--faint); font-size: .75rem; margin: -.3rem 0 .6rem; }
 
-/* Generic custom cards */
-.uhi-kpi-card, .uhi-inspector, .uhi-inspector-card {
-  background: #262626; border-radius: 12px; padding: 1.2rem; color: #FFFFFF;
-  border: 1px solid rgba(255,255,255,.05);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,.3), 0 2px 4px -1px rgba(0,0,0,.2);
-}
-.uhi-insp a, .uhi-inspector a { color: #3B82F6; text-decoration: none; }
-.uhi-insp a:hover, .uhi-inspector a:hover { text-decoration: underline; }
-</style>
+/* Links: monochrome, underlined on hover */
+.uhi-insp a { color: var(--text); text-decoration: none;
+  border-bottom: 1px solid var(--line-strong); }
+.uhi-insp a:hover { border-bottom-color: var(--text); }
 """
 
 
+def page_css() -> str:
+    """Full ``<style>`` block for the page: tokens first, then the panel stylesheet."""
+    return f"<style>\n{css_vars()}\n{FELT_CSS}</style>"
+
+
 def inject_felt_css() -> None:
-    """Inject the Felt-inspired page stylesheet (neutral dark panels, blue accent)."""
-    st.markdown(FELT_CSS, unsafe_allow_html=True)
+    """Inject the page stylesheet (design tokens + floating-panel styles)."""
+    st.markdown(page_css(), unsafe_allow_html=True)

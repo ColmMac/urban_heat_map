@@ -6,6 +6,10 @@ so this runs offline in the default suite with no Streamlit runtime and no cache
 
 from __future__ import annotations
 
+import re
+import tomllib
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -18,7 +22,15 @@ from edinburgh_uhi.ui.components import (
     score_colour,
     zone_table,
 )
-from edinburgh_uhi.ui.map_view import heat_domain, tooltip_props
+from edinburgh_uhi.ui.map_view import (
+    _CARD_JS,
+    _MAP_STYLES,
+    CORRIDOR_TOOLTIP_JS,
+    MAP_CSS,
+    PARK_TOOLTIP_JS,
+    heat_domain,
+    tooltip_props,
+)
 from edinburgh_uhi.ui.model import DEFAULT_WEIGHTS, normalise_weights
 from edinburgh_uhi.ui.state import (
     MAP_KEY,
@@ -29,9 +41,21 @@ from edinburgh_uhi.ui.state import (
     reset_model,
     selected_cell_id,
 )
-from edinburgh_uhi.ui.theme import AMBER, CRIMSON, SLATE
+from edinburgh_uhi.ui.theme import (
+    AMBER,
+    COMPONENTS,
+    CRIMSON,
+    FELT_CSS,
+    HEAT_RAMP,
+    SLATE,
+    TOKENS,
+    css_vars,
+    page_css,
+)
 
 DEFAULT = Weights(*DEFAULT_WEIGHTS)
+CONFIG_TOML = Path(__file__).resolve().parents[1] / ".streamlit" / "config.toml"
+HEX = re.compile(r"#[0-9A-Fa-f]{3,8}\b")
 
 
 def _click(cell_id: str) -> dict:
@@ -246,3 +270,62 @@ def test_tooltip_props_hide_recommendation_when_ineligible() -> None:
     assert props["ex"].iloc[1] == "Mostly water"
     assert props["an"].iloc[1] is None and props["st"].iloc[1] is None
     assert props["ps"].tolist() == [82, 82]
+
+
+# --------------------------------------------------------------------------------------
+# theme / design tokens
+# --------------------------------------------------------------------------------------
+def test_css_vars_declares_every_token() -> None:
+    block = css_vars()
+    assert block.startswith(":root{")
+    for name, value in TOKENS.items():
+        assert f"--{name}:{value};" in block
+
+
+def test_token_values_are_colours_or_shadows() -> None:
+    for name, value in TOKENS.items():
+        if name.startswith("shadow"):
+            assert "rgba(" in value, name
+        else:
+            assert HEX.fullmatch(value) or value.startswith("rgba("), name
+
+
+@pytest.mark.parametrize(
+    ("label", "source"),
+    [
+        ("page CSS", FELT_CSS),
+        ("map CSS", _MAP_STYLES),
+        ("hover-card JS", _CARD_JS),
+        ("park tooltip JS", PARK_TOOLTIP_JS.js_code),
+        ("corridor tooltip JS", CORRIDOR_TOOLTIP_JS.js_code),
+    ],
+)
+def test_stylesheets_use_tokens_not_raw_hex(label: str, source: str) -> None:
+    assert HEX.findall(source) == [], f"{label} hard-codes colours; use var(--token)"
+
+
+def test_every_css_var_reference_is_a_token() -> None:
+    used = set(re.findall(r"var\(--([a-z0-9-]+)\)", FELT_CSS + _MAP_STYLES + _CARD_JS))
+    assert used - TOKENS.keys() == set()
+
+
+def test_page_and_map_both_ship_the_tokens() -> None:
+    assert css_vars() in page_css()
+    assert css_vars() in MAP_CSS  # the st_folium iframe is a separate document
+
+
+def test_python_palette_comes_from_tokens() -> None:
+    token_values = set(TOKENS.values())
+    assert {colour for _, _, colour in COMPONENTS} <= token_values
+    assert set(HEAT_RAMP) <= token_values
+
+
+def test_streamlit_config_mirrors_tokens() -> None:
+    theme = tomllib.loads(CONFIG_TOML.read_text(encoding="utf-8"))["theme"]
+    assert theme["base"] == "dark"
+    assert theme["backgroundColor"] == TOKENS["bg"]
+    assert theme["secondaryBackgroundColor"] == TOKENS["surface-2"]
+    assert theme["textColor"] == TOKENS["text"]
+    assert theme["primaryColor"] == TOKENS["text"]
+    assert theme["borderColor"] == TOKENS["border"]
+    assert theme["font"].startswith("Inter:https://fonts.googleapis.com/")

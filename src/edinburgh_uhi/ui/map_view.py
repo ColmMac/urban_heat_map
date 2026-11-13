@@ -19,14 +19,15 @@ from edinburgh_uhi import config
 from edinburgh_uhi.ui.components import exclusion_label
 from edinburgh_uhi.ui.theme import (
     ACCENT,
-    BG,
-    BORDER,
     CORRIDOR,
     EMERALD,
+    EMERALD_LINE,
+    FONT_STACK,
     HEAT_RAMP,
-    MUTED,
-    PANEL,
+    INTER_CSS_URL,
+    NODATA,
     TEXT,
+    css_vars,
 )
 
 CARTO_ATTR = "© OpenStreetMap contributors © CARTO"
@@ -131,7 +132,8 @@ def basemap_tiles(carto_key: str | None) -> tuple[list[Basemap], Basemap | None]
 _CARD_JS = """
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
   (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-const tier = (s) => s >= 75 ? '#DC2626' : s >= 50 ? '#F97316' : s >= 25 ? '#F59E0B' : '#64748B';
+const tier = (s) => s >= 75 ? 'var(--heat-hot)' : s >= 50 ? 'var(--heat)'
+  : s >= 25 ? 'var(--heat-warm)' : 'var(--sealed)';
 const card = (p) => {
   const an = p.an == null ? 'n/a' : (p.an > 0 ? '+' : '') + Number(p.an).toFixed(1) + ' °C';
   const rank = p.rk ? '<span class="uhi-rank">#' + p.rk + '</span>' : '';
@@ -174,93 +176,105 @@ PIN_JS = _on_each_feature(
 )
 PARK_TOOLTIP_JS = _on_each_feature(
     'layer.bindTooltip(\'<div class="uhi-card uhi-mini"><div class="uhi-kicker" '
-    'style="color:#10B981">Cooling greenspace</div><div class="uhi-nb">\' + esc(p.name) '
+    'style="color:var(--green)">Cooling greenspace</div><div class="uhi-nb">\' + esc(p.name) '
     "+ '</div><div class=\"uhi-st\">' + p.area_ha + '</div></div>', tipOpts);"
 )
 CORRIDOR_TOOLTIP_JS = _on_each_feature(
     'layer.bindTooltip(\'<div class="uhi-card uhi-mini"><div class="uhi-kicker" '
-    'style="color:#22D3EE">Proposed tree corridor</div><div class="uhi-nb">\' '
+    'style="color:var(--corridor)">Proposed tree corridor</div><div class="uhi-nb">\' '
     "+ esc(p.main_street) + '</div></div>', tipOpts);"
 )
 
-MAP_CSS = f"""
-<style>
-.leaflet-container {{ background: {BG}; font-family: Inter, ui-sans-serif, system-ui,
-  -apple-system, "Segoe UI", Roboto, sans-serif; }}
-.leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left {{ margin-left: 390px; }}
-html, body {{ margin: 0; height: 100%; overflow: hidden; }}
-.folium-map, .leaflet-container {{ width: 100% !important; height: 100vh !important; }}
-@media (max-width: 768px) {{
-  .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left {{ margin-left: 0; }}
-  .leaflet-bottom {{ bottom: 40vh; bottom: 40dvh; }}
-  .uhi-legend {{ display: none; }}
-}}
-.leaflet-bar {{ border: 1px solid {BORDER} !important; border-radius: 10px !important;
-  overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,.45) !important; }}
-.leaflet-bar a, .leaflet-bar a:hover {{ background: {PANEL}; color: {TEXT};
-  border-bottom: 1px solid {BORDER}; }}
-.leaflet-bar a:hover {{ background: #1F2937; }}
-.leaflet-control-layers {{ background: rgba(17,24,39,.92) !important; color: {TEXT};
-  border: 1px solid {BORDER} !important; border-radius: 10px !important;
-  box-shadow: 0 6px 20px rgba(0,0,0,.45) !important; }}
-.leaflet-control-layers-toggle {{ filter: invert(.92); }}
-.leaflet-control-layers-separator {{ border-top-color: {BORDER} !important; }}
-.leaflet-control-layers label {{ font-size: 12px; }}
-.leaflet-control-attribution {{ background: rgba(11,15,25,.75) !important;
-  color: #6B7280 !important; font-size: 10px; }}
-.leaflet-control-attribution a {{ color: {MUTED} !important; }}
-.leaflet-control-scale-line {{ background: rgba(17,24,39,.8); color: #D1D5DB;
-  border-color: #4B5563; }}
-.leaflet-tooltip.uhi-tip {{ background: transparent; border: 0; box-shadow: none; padding: 0;
-  white-space: normal; }}
-.leaflet-tooltip.uhi-tip:before {{ display: none; }}
-.uhi-card {{ width: 260px; background: rgba(11,15,25,.96); color: {TEXT};
-  border: 1px solid {BORDER}; border-radius: 12px; padding: 12px 14px;
-  box-shadow: 0 12px 32px rgba(0,0,0,.6); font-size: 12px; line-height: 1.35; }}
-.uhi-card.uhi-mini {{ width: auto; min-width: 160px; max-width: 240px; padding: 9px 12px; }}
-.uhi-kicker {{ font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  margin-bottom: 2px; }}
-.uhi-head {{ display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }}
-.uhi-title {{ min-width: 0; }}
-.uhi-nb {{ font-size: 14px; font-weight: 700; color: #F9FAFB; }}
-.uhi-st {{ color: {MUTED}; font-size: 11.5px; margin-top: 1px; }}
-.uhi-rank {{ color: {ACCENT}; margin-right: 6px; }}
-.uhi-badge {{ flex: none; min-width: 38px; height: 26px; border-radius: 8px; color: #fff;
+# The st_folium iframe is its own document: it gets its own copy of the tokens and of Inter.
+_MAP_STYLES = """
+.leaflet-container { background: var(--bg); font-family: FONT_STACK; }
+.leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 390px; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+.folium-map, .leaflet-container { width: 100% !important; height: 100vh !important; }
+@media (max-width: 768px) {
+  .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 0; }
+  .leaflet-bottom { bottom: 40vh; bottom: 40dvh; }
+  .uhi-legend { display: none; }
+}
+.leaflet-bar { border: 1px solid var(--border) !important; border-radius: 10px !important;
+  overflow: hidden; box-shadow: var(--shadow-lg) !important; }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--surface-2); color: var(--text);
+  border-bottom: 1px solid var(--border); }
+.leaflet-bar a:hover { background: var(--surface-3); }
+.leaflet-control-layers {
+  background: color-mix(in srgb, var(--surface) 94%, transparent) !important;
+  color: var(--text); border: 1px solid var(--border) !important; border-radius: 10px !important;
+  box-shadow: var(--shadow-lg) !important; }
+.leaflet-control-layers-toggle { filter: invert(.92); }
+.leaflet-control-layers-separator { border-top-color: var(--border) !important; }
+.leaflet-control-layers label { font-size: 12px; }
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg) 75%, transparent) !important;
+  color: var(--faint) !important; font-size: 10px; }
+.leaflet-control-attribution a { color: var(--muted) !important; }
+.leaflet-control-scale-line { background: color-mix(in srgb, var(--surface) 80%, transparent);
+  color: var(--text); border-color: var(--faint); }
+.leaflet-tooltip.uhi-tip { background: transparent; border: 0; box-shadow: none; padding: 0;
+  white-space: normal; }
+.leaflet-tooltip.uhi-tip:before { display: none; }
+.uhi-card { width: 260px; background: color-mix(in srgb, var(--bg) 96%, transparent);
+  color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  box-shadow: var(--shadow-lg); font-size: 12px; line-height: 1.35; }
+.uhi-card.uhi-mini { width: auto; min-width: 160px; max-width: 240px; padding: 9px 12px; }
+.uhi-kicker { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 2px; }
+.uhi-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.uhi-title { min-width: 0; }
+.uhi-nb { font-size: 14px; font-weight: 700; color: var(--text-hi); }
+.uhi-st { color: var(--muted); font-size: 11.5px; margin-top: 1px; }
+.uhi-rank { color: var(--heat); margin-right: 6px; }
+.uhi-badge { flex: none; min-width: 38px; height: 26px; border-radius: 8px; color: var(--text-hi);
   font-weight: 800; font-size: 14px; text-align: center; line-height: 26px; padding: 0 6px;
-  box-shadow: 0 0 14px rgba(249,115,22,.35); }}
-.uhi-stats {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 6px; }}
-.uhi-stats div {{ background: {PANEL}; border: 1px solid {BORDER}; border-radius: 8px;
-  padding: 5px 6px; }}
-.uhi-stats span, .uhi-rec span {{ display: block; font-size: 9.5px; letter-spacing: .06em;
-  text-transform: uppercase; color: #6B7280; }}
-.uhi-stats b {{ font-size: 12.5px; color: #F9FAFB; }}
-.uhi-park {{ color: #6B7280; font-size: 11px; margin-bottom: 8px; }}
-.uhi-rec {{ border-left: 3px solid {EMERALD}; background: rgba(16,185,129,.08);
-  padding: 6px 8px; border-radius: 6px; color: #D1FAE5; }}
-.uhi-rec.uhi-off {{ border-left-color: #4B5563; background: rgba(75,85,99,.15); color: {MUTED}; }}
-.uhi-pin-wrap {{ background: transparent; border: 0; }}
-.uhi-pin {{ position: relative; width: 30px; height: 30px; border-radius: 50%; background: {BG};
-  border: 2px solid {ACCENT}; color: #FDBA74; font: 800 13px/26px Inter, system-ui, sans-serif;
-  text-align: center; box-shadow: 0 0 0 3px rgba(249,115,22,.22), 0 0 16px 4px rgba(249,115,22,.6);
-  }}
-.uhi-pin-top {{ background: {ACCENT}; color: {BG}; border-color: #FED7AA; }}
-.uhi-pin:after {{ content: ""; position: absolute; inset: -2px; border-radius: 50%;
-  border: 2px solid {ACCENT}; animation: uhiPulse 2.4s ease-out infinite; }}
-@keyframes uhiPulse {{ 0% {{ transform: scale(1); opacity: .8; }}
-  100% {{ transform: scale(2.1); opacity: 0; }} }}
-.uhi-legend {{ position: absolute; right: 12px; bottom: 34px; z-index: 1000; width: 250px;
-  background: rgba(11,15,25,.9); border: 1px solid {BORDER}; border-radius: 12px;
-  padding: 10px 12px; color: {TEXT}; font: 12px/1.35 Inter, system-ui, sans-serif;
-  box-shadow: 0 12px 32px rgba(0,0,0,.5); backdrop-filter: blur(6px); }}
-.uhi-legend .uhi-kicker {{ color: {MUTED}; }}
-.uhi-ramp {{ height: 8px; border-radius: 4px; margin: 6px 0 3px; }}
-.uhi-ticks {{ display: flex; justify-content: space-between; color: {MUTED}; font-size: 10.5px; }}
-.uhi-keys {{ display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font-size: 11px;
-  color: #D1D5DB; }}
-.uhi-keys i {{ display: inline-block; width: 12px; height: 12px; border-radius: 3px;
-  vertical-align: -2px; margin-right: 5px; }}
-</style>
-"""
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--heat) 35%, transparent); }
+.uhi-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 6px; }
+.uhi-stats div { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 5px 6px; }
+.uhi-stats span, .uhi-rec span { display: block; font-size: 9.5px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--faint); }
+.uhi-rec span { color: var(--green); font-weight: 600; }
+.uhi-rec.uhi-off span { color: var(--muted); }
+.uhi-stats b { font-size: 12.5px; color: var(--text-hi); font-variant-numeric: tabular-nums; }
+.uhi-park { color: var(--faint); font-size: 11px; margin-bottom: 8px; }
+.uhi-rec { border-left: 3px solid var(--green);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  padding: 6px 8px; border-radius: 6px; color: var(--green-pale); }
+.uhi-rec.uhi-off { border-left-color: var(--faint);
+  background: color-mix(in srgb, var(--faint) 18%, transparent); color: var(--muted); }
+.uhi-pin-wrap { background: transparent; border: 0; }
+.uhi-pin { position: relative; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--heat); color: var(--heat-soft);
+  font: 800 13px/26px FONT_STACK; text-align: center;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--heat) 22%, transparent),
+    0 0 16px 4px color-mix(in srgb, var(--heat) 60%, transparent); }
+.uhi-pin-top { background: var(--heat); color: var(--bg); border-color: var(--heat-pale); }
+.uhi-pin:after { content: ""; position: absolute; inset: -2px; border-radius: 50%;
+  border: 2px solid var(--heat); animation: uhiPulse 2.4s ease-out infinite; }
+@keyframes uhiPulse { 0% { transform: scale(1); opacity: .8; }
+  100% { transform: scale(2.1); opacity: 0; } }
+.uhi-legend { position: absolute; right: 12px; bottom: 34px; z-index: 1000; width: 250px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 12px; color: var(--text); font: 12px/1.35 FONT_STACK;
+  box-shadow: var(--shadow-lg); backdrop-filter: blur(6px); }
+.uhi-legend .uhi-kicker { color: var(--muted); }
+.uhi-ramp { height: 8px; border-radius: 4px; margin: 6px 0 3px; }
+.uhi-ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 10.5px;
+  font-variant-numeric: tabular-nums; }
+.uhi-keys { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font-size: 11px;
+  color: var(--text); }
+.uhi-keys i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+  vertical-align: -2px; margin-right: 5px; }
+""".replace("FONT_STACK", FONT_STACK)
+
+MAP_CSS = (
+    f'<link rel="stylesheet" href="{INTER_CSS_URL}">\n'
+    f"<style>\n{css_vars()}\n{_MAP_STYLES}</style>\n"
+)
 
 
 def _legend_html(lo: float, hi: float, index: list[float]) -> str:
@@ -290,7 +304,7 @@ def _heat_layer(scored: gpd.GeoDataFrame, m: folium.Map) -> folium.FeatureGroup:
     cmap = cm.LinearColormap(HEAT_RAMP, index=index, vmin=lo, vmax=hi)
     anomaly = scored["lst_anomaly_c"]
     clipped = anomaly.clip(lo, hi)
-    colours = clipped.map(lambda v: cmap(v) if pd.notna(v) else "#374151")
+    colours = clipped.map(lambda v: cmap(v) if pd.notna(v) else NODATA)
     # Hot cells glow through the dark basemap; cool/neutral cells recede.
     opacity = np.where(clipped >= 0, 0.28 + 0.5 * (clipped / hi), 0.28 + 0.14 * (clipped / lo))
     opacity = pd.Series(np.nan_to_num(opacity, nan=0.15).round(2), index=scored.index)
@@ -331,7 +345,7 @@ def _parks_layer(parks: gpd.GeoDataFrame) -> folium.FeatureGroup:
         data,
         style_function=lambda _f: {
             "fillColor": EMERALD,
-            "color": "#34D399",
+            "color": EMERALD_LINE,
             "opacity": 0.55,
             "fillOpacity": 0.24,
             "weight": 0.6,

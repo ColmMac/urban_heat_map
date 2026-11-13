@@ -1,10 +1,19 @@
+# Theme mirrors the design tokens in src/edinburgh_uhi/ui/theme.py (TOKENS); tests/test_ui.py
+# fails if the two drift apart. Chrome is monochrome: colour is reserved for data.
 [theme]
 base = "dark"
-primaryColor = "#3B82F6"
-backgroundColor = "#171717"
-secondaryBackgroundColor = "#262626"
-textColor = "#E5E5E5"
-font = "sans serif"
+primaryColor = "#E7EBF0"              # text: monochrome primary (sliders, toggles, focus)
+backgroundColor = "#0B0F14"           # bg
+secondaryBackgroundColor = "#1A222C"  # surface-2
+textColor = "#E7EBF0"                 # text
+borderColor = "#232C37"               # border
+linkColor = "#E7EBF0"                 # text
+dataframeBorderColor = "#232C37"      # border
+dataframeHeaderBackgroundColor = "#121820"  # surface
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+baseRadius = "0.625rem"
+showWidgetBorder = false
+
 [server]
 runOnSave = false
 fileWatcherType = "none"
