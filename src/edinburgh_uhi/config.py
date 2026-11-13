@@ -42,7 +42,7 @@ CRS_BNG: str = "EPSG:27700"
 
 PLACE_QUERY: str = "City of Edinburgh, Scotland, United Kingdom"
 # Pin after the first successful boundary fetch (ingest logs the value), e.g. "R1234567".
-BOUNDARY_OSM_ID: str = "R1920901"
+BOUNDARY_OSM_ID: str | None = "R1920901"
 EDINBURGH_CENTER_LATLON: tuple[float, float] = (55.9533, -3.1883)
 # Sanity range for the council-area polygon, in km² (computed in EPSG:27700).
 BOUNDARY_AREA_KM2_RANGE: tuple[float, float] = (200.0, 450.0)
