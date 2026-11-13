@@ -104,6 +104,22 @@ iframe[title*="st_folium"] {
 }
 .st-key-felt_panel [data-testid="stTabs"] button p { font-size: .75rem; font-weight: 600; }
 .st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: .7rem; }
+/* Phones: the panel becomes a short bottom sheet so the map stays visible above it. */
+@media (max-width: 768px) {
+  .st-key-felt_panel {
+    top: auto; bottom: 0; left: 0; right: 0; width: 100%; max-height: 38vh;
+    border-radius: 14px 14px 0 0; padding: .75rem .9rem 1rem;
+    border-bottom: 0; overscroll-behavior: contain;
+  }
+  .uhi-hero p, .uhi-eyebrow { display: none; }
+  .uhi-hero h1 { font-size: 1.05rem; margin: 0 0 .2rem; }
+  .uhi-chips { margin-top: .3rem; }
+  /* keep the 2 x 2 KPI grid side by side instead of Streamlit's stacked mobile columns */
+  .st-key-felt_panel [data-testid="stHorizontalBlock"] { flex-direction: row !important;
+    flex-wrap: nowrap !important; }
+  .st-key-felt_panel [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    min-width: 0 !important; flex: 1 1 0% !important; width: 0 !important; }
+}
 .uhi-side-h {
   font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
   color: #A3A3A3; margin: .25rem 0 .55rem;
@@ -471,6 +487,13 @@ MAP_CSS = f"""
 .leaflet-container {{ background: {BG}; font-family: Inter, ui-sans-serif, system-ui,
   -apple-system, "Segoe UI", Roboto, sans-serif; }}
 .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left {{ margin-left: 390px; }}
+html, body {{ margin: 0; height: 100%; overflow: hidden; }}
+.folium-map, .leaflet-container {{ width: 100% !important; height: 100vh !important; }}
+@media (max-width: 768px) {{
+  .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left {{ margin-left: 0; }}
+  .leaflet-bottom {{ bottom: 38vh; }}
+  .uhi-legend {{ display: none; }}
+}}
 .leaflet-bar {{ border: 1px solid {BORDER} !important; border-radius: 10px !important;
   overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,.45) !important; }}
 .leaflet-bar a, .leaflet-bar a:hover {{ background: {PANEL}; color: {TEXT};
