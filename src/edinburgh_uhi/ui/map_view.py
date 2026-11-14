@@ -514,7 +514,10 @@ class ResponsiveFit(MacroElement):
           var sheet = null, blocked = false;
           function measure() {
             if (sheet && sheet.isConnected) {
-              onSheet(Math.round(sheet.getBoundingClientRect().height));
+              // Space the panel takes up from the bottom edge (its top, not its height: the
+              // closed sheet is a pill floating above the edge).
+              var top = sheet.getBoundingClientRect().top;
+              onSheet(Math.max(0, Math.round(window.parent.innerHeight - top)));
             }
           }
           var observer = window.ResizeObserver ? new ResizeObserver(measure) : null;

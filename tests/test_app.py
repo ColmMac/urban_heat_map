@@ -122,3 +122,24 @@ def test_map_click_opens_zone_and_survives_weight_change(at: AppTest) -> None:
     assert at.session_state["panel_view"] == "tune"  # an old click doesn't reopen Zone
     _open(at, "zone")
     assert "Selected cell" in _markdown(at)
+
+
+def test_phone_sheet_can_be_closed_and_reopened(at: AppTest) -> None:
+    next(b for b in at.button if b.label == "Hide panel").click().run()
+    assert at.session_state["sheet_hidden"] is True
+    assert [b.label for b in at.button if b.label in ("Hide panel", "Show panel")] == ["Show panel"]
+    assert 'class="uhi-kpis"' in _markdown(at)  # still drawn: desktop ignores the hidden state
+
+    next(b for b in at.button if b.label == "Show panel").click().run()
+    assert at.session_state["sheet_hidden"] is False
+    assert any(b.label == "Hide panel" for b in at.button)
+    assert not at.exception
+
+
+def test_map_tap_reopens_closed_sheet(at: AppTest) -> None:
+    next(b for b in at.button if b.label == "Hide panel").click().run()
+    cell = at.session_state["sel_cell"] or "E0327250_N0666750"
+    at.session_state["map"] = {"last_active_drawing": {"properties": {"cell_id": cell + "x"}}}
+    at.run()  # unknown ids still count as a new click; the selection falls back to zone #1
+    assert at.session_state["sheet_hidden"] is False
+    assert at.session_state["panel_view"] == "zone"

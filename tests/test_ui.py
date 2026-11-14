@@ -51,13 +51,16 @@ from edinburgh_uhi.ui.model import DEFAULT_WEIGHTS, normalise_weights
 from edinburgh_uhi.ui.state import (
     MAP_KEY,
     SELECTED_KEY,
+    SHEET_HIDDEN_KEY,
     VIEW_KEY,
     ZONE_VIEW,
     consume_map_click,
+    hide_sheet,
     init_state,
     model_from_state,
     reset_model,
     selected_cell_id,
+    show_sheet,
 )
 from edinburgh_uhi.ui.theme import (
     AMBER,
@@ -113,6 +116,7 @@ def test_init_state_seeds_defaults() -> None:
     assert state["t_heat"] and state["t_parks"] and state["t_zones"]
     assert state[SELECTED_KEY] is None
     assert state[VIEW_KEY] is None  # collapsed "peek" sheet
+    assert state[SHEET_HIDDEN_KEY] is False
 
 
 def test_init_state_demo_hides_zones_only_on_first_run() -> None:
@@ -555,3 +559,36 @@ def test_active_segment_and_focus_ring_contrast() -> None:
     assert _contrast(TOKENS["bg"], TOKENS["text"]) >= 4.5  # ink label on the light chip
     for bg in SURFACES:
         assert _contrast(TOKENS["focus"], TOKENS[bg]) >= 3.0
+
+
+# --------------------------------------------------------------------------------------
+# Phone bottom sheet: close it to see the whole map
+# --------------------------------------------------------------------------------------
+def test_hide_and_show_sheet() -> None:
+    state: dict = {}
+    init_state(state, demo=False)
+    hide_sheet(state)
+    assert state[SHEET_HIDDEN_KEY] is True
+    show_sheet(state)
+    assert state[SHEET_HIDDEN_KEY] is False
+
+
+def test_new_map_tap_reopens_a_hidden_sheet_on_zone() -> None:
+    state: dict = {}
+    init_state(state, demo=False)
+    hide_sheet(state)
+    state[MAP_KEY] = _click("C9")
+    assert consume_map_click(state) is True
+    assert state[SHEET_HIDDEN_KEY] is False and state[VIEW_KEY] == ZONE_VIEW
+    hide_sheet(state)
+    assert consume_map_click(state) is False  # the same old click must not reopen it
+    assert state[SHEET_HIDDEN_KEY] is True
+
+
+def test_sheet_controls_are_phone_only() -> None:
+    desktop, phone = FELT_CSS.split("@media (max-width: 768px)", 1)
+    assert ".st-key-sheet_hide, .st-key-sheet_show { display: none !important; }" in desktop
+    assert ".st-key-felt_panel > .st-key-sheet_hide {" in phone
+    assert ":has(.st-key-sheet_show) > :not(.st-key-sheet_show)" in phone
+    # the closed-sheet rule comes after the open-sheet rule so it wins the cascade
+    assert phone.index(":has(.st-key-sheet_show)") > phone.index(":has(.st-key-panel_body)")
