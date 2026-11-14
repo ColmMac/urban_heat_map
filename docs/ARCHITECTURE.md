@@ -693,12 +693,13 @@ Columns: `st.columns([0.7, 0.3])` under the KPI row. The right column shows the 
 
 ### 7.5 Interactivity
 
-- **Layer toggles:** three `st.sidebar.toggle`s (heat, parks, zones) decide which FeatureGroups get built. The sidebar is visible on video in a way Leaflet's control isn't. Default all on. `?demo=1` (via `st.query_params`) starts with zones **off**, so the recording can "reveal" them.
+- **Panel layout (§7.9):** one `position: fixed` panel (floating card on desktop, bottom sheet at ≤ 768 px) holds a header + 4-tile KPI strip, a one-line *peek* card for the selected cell, and an `st.segmented_control` section nav: **Zone** (inspector) · **Tune** (layers, weights, K) · **Ranking** · **About** (method, KPI definitions, data attribution). No section open = collapsed sheet; a map click opens **Zone**.
+- **Layer toggles (Tune):** three `st.toggle`s (heat, parks, zones) decide which FeatureGroups get built; a colour swatch before each label doubles as the legend on phones, where the map legend is hidden. Default all on. `?demo=1` (via `st.query_params`) starts with zones **off**, so the recording can "reveal" them.
 - **Cell / zone inspection:** `st_folium(m, height=620, use_container_width=True, returned_objects=["last_active_drawing"], key="map")`. Limiting `returned_objects` matters: without it, every pan and zoom triggers a full Streamlit rerun and the map flickers on video. When `last_active_drawing` has a `cell_id`, the inspector panel shows:
   a dark HTML card with the rank, neighbourhood and street, a tier-coloured score badge, LST anomaly / park gap / impervious tiles, three component bars for `c_thermal/50`, `c_distance/25`, `c_impervious/25` (denominators = current weights × 100), and the `recommendation` text.
   Default when nothing is clicked: zone #1.
-- **Ranked table:** `st.dataframe` of rank, zone, priority (`ProgressColumn`), LST Δ (`%+.1f °C`), park gap (`%.0f m`), impervious (`%.0f %`), street and intervention, with the numeric columns first. A sibling tab holds a dark Altair stacked horizontal bar chart of the per-component contributions with score totals (`theme=None`, background `#0B0F19`).
-- **Control panel (sidebar, collapsed by default):** Map layers / Model weights / Zone selection sections separated by dividers. Three sliders (0–1, step 0.05) auto-normalised to sum 1, plus a K slider (10–15, default 15). On change: `P = 100·Σ w·s_*` recomputed from the stored `s_thermal/s_distance/s_impervious` columns (normalisation doesn't depend on the weights), then `scoring.select_top_zones(...)` with `cx_m, cy_m`. Corridors are re-filtered from `corridors_web`. No network, no geometry ops. Show `st.caption("Live re-ranking; robustness of default top-15 to ±0.1 weight changes: mean Jaccard {x:.2f}")`.
+- **Ranking:** an HTML list (`components.ranked_list_html`) of rank, neighbourhood, street and score, each with a stacked bar of the `c_*` contributions (points out of 100, so the bar length is the score); the selected zone is highlighted. Replaces the earlier `st.dataframe` + Altair chart, which nested a scroll area inside the sheet. `st.download_button` exports the full table as CSV (`components.zones_csv`).
+- **Model weights (Tune):** a stacked *weight-mix* bar with percentages, three sliders (0–1, step 0.05, thumbs in their component colour) auto-normalised to sum 1, and K as a required `st.segmented_control` (10–15, default 15). On change: `P = 100·Σ w·s_*` recomputed from the stored `s_thermal/s_distance/s_impervious` columns (normalisation doesn't depend on the weights), then `scoring.select_top_zones(...)` with `cx_m, cy_m`. Corridors are re-filtered from `corridors_web`. No network, no geometry ops. Show `st.caption("Live re-ranking; robustness of default top-15 to ±0.1 weight changes: mean Jaccard {x:.2f}")`.
 
 ### 7.6 Performance and caching
 
@@ -747,24 +748,27 @@ Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
 
 | Module | Contents | Streamlit? |
 |--------|----------|-----------|
-| `theme.py` | Palette constants (shared by page CSS, map CSS, hover-card JS and Altair) and the page stylesheet | injection only |
-| `components.py` | Pure builders: hero / inspector HTML, ranked table frame, Altair breakdown chart, label maps, `score_colour` | no |
+| `theme.py` | Design tokens, Python colour aliases and the page stylesheet (panel, bottom sheet, widget adapters) | injection only |
+| `components.py` | Pure builders: header, KPI strip, peek card, inspector, weight-mix bar, ranked list, CSV export, label maps, `score_colour` | no |
 | `model.py` | `normalise_weights`, `rescore`, `rerank` (calls `scoring.priority` / `select_top_zones`; no geometry ops) | no |
 | `map_view.py` | Basemaps, layers, hover cards, legend, `build_map` | `st.secrets` only |
 | `state.py` | Session-state model (below) | no (takes the state mapping as an argument) |
-| `panel.py` | Streamlit renderers for the floating panel | yes |
+| `panel.py` | Streamlit renderers: `render_panel` (header, peek, section nav) and one renderer per section | yes |
 
 **State rules.**
-- Session state is the single source of truth for the model settings. `init_state` seeds `w_thermal`, `w_distance`, `w_impervious`, `k_zones`, `t_heat`, `t_parks`, `t_zones` (`?demo=1` → `t_zones=False` on first load) and `sel_cell`, then re-assigns every widget key to itself so its value survives runs on which that widget isn't drawn.
-- Widgets are created with `key=` only, never `value=`. The app reads settings through `model_from_state`, not from widget return values.
-- `st_folium(..., key="map")` copies each click into the plain key `st.session_state["map"]` through its `on_change` callback, before the rerun the click triggers. `consume_map_click` runs before anything is drawn and turns a *new* `last_active_drawing.cell_id` into `sel_cell`. The selection therefore persists across weight changes (falling back to zone #1 only if the cell disappears), and the panel renders in one top-to-bottom pass.
-- Widget keys (`w_*`, `k_zones`, `t_*`, `map`) are a contract: tests and deep-links depend on them.
+- Session state is the single source of truth for the model settings. `init_state` seeds `w_thermal`, `w_distance`, `w_impervious`, `k_zones`, `t_heat`, `t_parks`, `t_zones` (`?demo=1` → `t_zones=False` on first load), `sel_cell` and `panel_view`. The app must work on runs where no control exists at all (Tune closed).
+- Control widgets are created with `key=` and `persist_state="page"` only, never `value=`; `persist_state` keeps a widget's value while its section is closed. The app reads settings through `model_from_state`, not from widget return values. `tests/test_app.py::test_weights_survive_section_switch` guards this.
+- `panel_view` (the section nav) is `None` (collapsed sheet) or `zone` / `tune` / `rank` / `about`.
+- `st_folium(..., key="map")` copies each click into the plain key `st.session_state["map"]` through its `on_change` callback, before the rerun the click triggers. `consume_map_click` runs before anything is drawn and turns a *new* `last_active_drawing.cell_id` into `sel_cell` and sets `panel_view="zone"` (it runs before the nav widget exists, so it may set its key). The selection therefore persists across weight changes (falling back to zone #1 only if the cell disappears), and the panel renders in one top-to-bottom pass.
+- Widget keys (`w_*`, `k_zones`, `t_*`, `panel_view`, `map`) are a contract: tests and deep-links depend on them.
 
 **Design tokens.** `theme.TOKENS` is the only place a colour is defined. Chrome is monochrome ink (the primary colour is the text colour, so sliders and toggles are near-white); saturated colour is reserved for data meaning (heat ramp, greenspace, corridors, sealed ground), and zone ranks are heat-orange everywhere.
 - Stylesheets and the hover-card JS use `var(--token)`. `css_vars()` is injected into the page *and* into the st_folium iframe, which is a separate document and also loads Inter itself.
 - Python-side aliases (`BG`, `ACCENT`, `EMERALD`, `HEAT_RAMP`, …) cover what cannot resolve CSS variables: Leaflet canvas fills (`prefer_canvas=True`), the branca colormap, Altair specs and inline styles built in Python.
 - `.streamlit/config.toml` mirrors the surface/text tokens and loads Inter (`font = "Inter:<url>"`).
-- Selectors that reach into Streamlit's internal widget DOM live in one marked block in `FELT_CSS` (currently: the toggle knob turns ink when on, because the track is near-white). Re-check that block after any Streamlit upgrade.
+- Selectors that reach into Streamlit's internal widget DOM live in one marked block in `FELT_CSS`. Re-check it after any Streamlit upgrade. It currently covers: equal-width segmented controls with a light active chip (`button[data-variant="segmented_control"][aria-checked]`); the ink knob of an "on" toggle; slider thumbs (`[style*="translate(-50%, -50%)"]`, react-aria) enlarged and coloured per component (the fill is a JS-computed gradient and stays near-white); label swatches; and resetting `stMarkdownContainer`'s `margin-bottom: -1rem`, which otherwise overlaps raw-HTML blocks.
+
+**Bottom sheet (≤ 768 px).** Pure CSS, no JavaScript: the panel docks to the bottom edge with a grab handle and sizes to its content (~265 px "peek"). `.st-key-felt_panel:has(.st-key-panel_body)` (the body container exists only while a section is open) switches it to a 62dvh sheet that scrolls internally, and hides the title and KPI strip to give the section room. The mobile media query is the last block in `FELT_CSS` so it wins the cascade; the map's bottom controls are offset by the peek height in `map_view`.
 - `tests/test_ui.py` fails on raw hex in the stylesheets or hover-card JS, on `var(--x)` references to unknown tokens, and on `config.toml` drifting from the tokens.
 
 ---

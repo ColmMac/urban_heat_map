@@ -17,10 +17,18 @@ from edinburgh_uhi import config
 from edinburgh_uhi.config import Weights
 from edinburgh_uhi.ui.components import (
     exclusion_label,
-    hero_html,
+    header_html,
     inspector_html,
+    kpi_glossary_md,
+    kpi_items,
+    kpi_strip_html,
+    peek_html,
+    ranked_list_html,
     score_colour,
+    weight_mix_html,
+    zone_rank,
     zone_table,
+    zones_csv,
 )
 from edinburgh_uhi.ui.map_view import (
     _CARD_JS,
@@ -35,6 +43,8 @@ from edinburgh_uhi.ui.model import DEFAULT_WEIGHTS, normalise_weights
 from edinburgh_uhi.ui.state import (
     MAP_KEY,
     SELECTED_KEY,
+    VIEW_KEY,
+    ZONE_VIEW,
     consume_map_click,
     init_state,
     model_from_state,
@@ -94,6 +104,7 @@ def test_init_state_seeds_defaults() -> None:
     assert state["k_zones"] == config.TOPK_K
     assert state["t_heat"] and state["t_parks"] and state["t_zones"]
     assert state[SELECTED_KEY] is None
+    assert state[VIEW_KEY] is None  # collapsed "peek" sheet
 
 
 def test_init_state_demo_hides_zones_only_on_first_run() -> None:
@@ -129,7 +140,10 @@ def test_consume_map_click_records_only_new_clicks() -> None:
     state[MAP_KEY] = _click("C7")
     assert consume_map_click(state) is True
     assert state[SELECTED_KEY] == "C7"
+    assert state[VIEW_KEY] == ZONE_VIEW  # a map tap opens the inspector
+    state[VIEW_KEY] = None  # user collapses the sheet
     assert consume_map_click(state) is False  # same click reported again on a later run
+    assert state[VIEW_KEY] is None  # ...must not reopen it
 
 
 @pytest.mark.parametrize(
@@ -234,12 +248,103 @@ def test_zone_table_columns_and_units() -> None:
     assert table["Action"].iloc[0] == "Street trees"
 
 
-def test_hero_html_shows_live_weights() -> None:
-    meta = {"lst": {"date_range": ["2019-06-01", "2025-08-31"]}}
-    out = hero_html(meta, Weights(thermal=0.6, distance=0.2, impervious=0.2), k=12)
-    assert "Heat <b>0.60</b>" in out
-    assert "Top-K <b>12</b>" in out
+META = {
+    "kpis": {"peak_zone_anomaly_c": 4.04, "pct_urban_cells_beyond_doorstep": 6.2},
+    "lst": {
+        "date_range": ["2019-06-01", "2025-08-31"],
+        "n_scenes_used": 12,
+        "mean_air_tmax_c": 19.4,
+    },
+}
+
+
+def _zones() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            _cell(),
+            _cell(
+                cell_id="C2",
+                zone_rank=2,
+                neighbourhood=None,
+                main_street=None,
+                priority_score=48.0,
+                c_thermal=30.0,
+                c_distance=10.0,
+                c_impervious=8.0,
+            ),
+        ]
+    )
+
+
+def test_header_html_shows_years_and_title() -> None:
+    out = header_html(META)
+    assert "Where should Edinburgh plant its next trees?" in out
     assert "2019–2025" in out
+
+
+def test_kpi_items_and_strip() -> None:
+    items = kpi_items(META, n_zones=15)
+    assert items[0] == ("+4.0°C", "peak zone anomaly")
+    assert items[1][0] == "6%"
+    assert items[2] == ("15", "zones · 94 ha")
+    assert items[3][0] == "12"
+    out = kpi_strip_html([("<b>", "a & b")])
+    assert out.count('class="uhi-kpi"') == 1
+    assert "&lt;b&gt;" in out and "a &amp; b" in out
+
+
+def test_kpi_items_without_scene_count() -> None:
+    assert kpi_items({"kpis": META["kpis"]}, 10)[3][0] == "n/a"
+
+
+def test_kpi_glossary_mentions_dates_and_air_temperature() -> None:
+    md = kpi_glossary_md(META)
+    assert "2019-06-01 to 2025-08-31" in md and "19.4 °C" in md
+
+
+def test_zone_rank() -> None:
+    zones = _zones()
+    assert zone_rank(zones, "C2") == 2
+    assert zone_rank(zones, "nope") is None
+
+
+def test_peek_html_for_zone_and_excluded_cell() -> None:
+    out = peek_html(_cell(), rank=1)
+    assert "Zone #1" in out and "Leith" in out and "Leith Walk" in out
+    assert "Street trees" in out and "uhi-off" not in out
+    off = peek_html(
+        _cell(eligible=False, recommendation=None, exclusion_reason="water", main_street=None),
+        rank=None,
+    )
+    assert "Selected cell" in off and "Not eligible" in off and "Mostly water" in off
+    assert "uhi-off" in off and " · " not in off  # no street -> no separator
+
+
+def test_peek_html_escapes() -> None:
+    assert "<script>" not in peek_html(_cell(neighbourhood="<script>x</script>"), rank=None)
+
+
+def test_weight_mix_html_shows_percentages() -> None:
+    out = weight_mix_html(Weights(thermal=0.5, distance=0.3, impervious=0.2))
+    assert "Heat <b>50%</b>" in out and "Park gap <b>30%</b>" in out
+    assert "Sealed surface <b>20%</b>" in out
+    assert out.count("<i style=") == 6  # 3 bar segments + 3 key swatches
+
+
+def test_ranked_list_html_rows_order_and_selection() -> None:
+    zones = _zones().iloc[::-1]  # out of order on purpose
+    out = ranked_list_html(zones, selected_id="C2")
+    assert out.count('class="uhi-rank-row') == 2
+    assert out.index("Leith") < out.index("Edinburgh")  # sorted by rank
+    assert out.count("is-sel") == 1
+    assert "width:40.0%" in out  # c_thermal points -> bar width
+    assert ">82<" in out and ">48<" in out
+
+
+def test_zones_csv_has_machine_friendly_header() -> None:
+    lines = zones_csv(_zones()).decode("utf-8").splitlines()
+    assert lines[0].startswith("rank,neighbourhood,main_street,priority_score")
+    assert len(lines) == 3
 
 
 # --------------------------------------------------------------------------------------

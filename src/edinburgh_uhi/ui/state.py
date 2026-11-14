@@ -1,10 +1,11 @@
 """Session-state model for the dashboard.
 
 Session state is the single source of truth for the model settings. Widgets are drawn with
-``key=`` only (never ``value=``) and the app reads the settings from state, not from widget return
-values, so it can draw controls anywhere in the page (or not at all on a given run) without
-losing them. Every function takes the state mapping as an argument, so it can be tested with a
-plain ``dict``.
+``key=`` and ``persist_state="page"`` only (never ``value=``), and the app reads the settings from
+state, not from widget return values. The controls live in a panel section that is only drawn
+when open, so the app must work on runs where no control widget exists at all: ``init_state``
+seeds every key, and ``persist_state`` keeps a widget's value while its section is closed.
+Every function takes the state mapping as an argument, so it can be tested with a plain ``dict``.
 """
 
 from __future__ import annotations
@@ -23,13 +24,14 @@ WEIGHT_KEYS = ("w_thermal", "w_distance", "w_impervious")
 TOGGLE_KEYS = ("t_heat", "t_parks", "t_zones")
 MAP_KEY = "map"  # st_folium copies each click into this plain (non-widget) key
 SELECTED_KEY = "sel_cell"
+VIEW_KEY = "panel_view"  # open panel section, or None for the collapsed "peek" sheet
+ZONE_VIEW = "zone"
+PERSIST = "page"  # persist_state for every control widget (kept while its section is closed)
 
 MODEL_DEFAULTS: dict[str, Any] = {
     **dict(zip(WEIGHT_KEYS, DEFAULT_WEIGHTS, strict=True)),
     "k_zones": config.TOPK_K,
 }
-# Widget-backed keys that must survive runs on which their widget isn't drawn.
-PERSISTENT_KEYS = (*WEIGHT_KEYS, "k_zones", *TOGGLE_KEYS)
 
 
 @dataclass(frozen=True)
@@ -43,19 +45,14 @@ class ModelState:
 
 
 def init_state(state: State, demo: bool) -> None:
-    """Seed missing keys with defaults and detach widget keys from widget clean-up.
-
-    Streamlit deletes a widget's value on any run where that widget isn't drawn. Re-assigning
-    each key to itself before the widgets are created keeps the value across such runs.
-    """
+    """Seed every missing key with its default (existing values are never overwritten)."""
     for key, value in MODEL_DEFAULTS.items():
         state.setdefault(key, value)
     state.setdefault("t_heat", True)
     state.setdefault("t_parks", True)
     state.setdefault("t_zones", not demo)  # ?demo=1 starts with zones hidden for the reveal
     state.setdefault(SELECTED_KEY, None)
-    for key in PERSISTENT_KEYS:
-        state[key] = state[key]
+    state.setdefault(VIEW_KEY, None)
 
 
 def reset_model(state: State) -> None:
@@ -72,15 +69,17 @@ def clicked_cell(state: State) -> str | None:
 
 
 def consume_map_click(state: State) -> bool:
-    """Record a new map click as the selected cell; return True if the selection changed.
+    """Record a new map click as the selected cell and open the Zone section.
 
-    ``last_active_drawing`` keeps reporting the last click on every later run, so only a click
-    on a different feature counts as new.
+    Returns True if the selection changed. ``last_active_drawing`` keeps reporting the last
+    click on every later run, so only a click on a different feature counts as new. Must run
+    before the section nav is drawn (a widget's key can't be set after it is instantiated).
     """
     cell = clicked_cell(state)
     if cell is None or cell == state.get(SELECTED_KEY):
         return False
     state[SELECTED_KEY] = cell
+    state[VIEW_KEY] = ZONE_VIEW  # tapping the map opens the inspector (half sheet on phones)
     return True
 
 

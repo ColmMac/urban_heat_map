@@ -193,7 +193,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 .folium-map, .leaflet-container { width: 100% !important; height: 100vh !important; }
 @media (max-width: 768px) {
   .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 0; }
-  .leaflet-bottom { bottom: 40vh; bottom: 40dvh; }
+  .leaflet-bottom { bottom: 272px; }  /* clears the collapsed "peek" sheet (~264 px) */
   .uhi-legend { display: none; }
 }
 .leaflet-bar { border: 1px solid var(--border) !important; border-radius: 10px !important;
