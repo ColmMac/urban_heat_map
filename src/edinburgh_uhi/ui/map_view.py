@@ -14,6 +14,8 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import streamlit as st
+from branca.element import MacroElement
+from folium.template import Template
 
 from edinburgh_uhi import config
 from edinburgh_uhi.ui.components import exclusion_label
@@ -190,12 +192,8 @@ _MAP_STYLES = """
 .leaflet-container { background: var(--bg); font-family: FONT_STACK; }
 .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 390px; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
-.folium-map, .leaflet-container { width: 100% !important; height: 100vh !important; }
-@media (max-width: 768px) {
-  .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 0; }
-  .leaflet-bottom { bottom: 272px; }  /* clears the collapsed "peek" sheet (~264 px) */
-  .uhi-legend { display: none; }
-}
+.folium-map, .leaflet-container { width: 100% !important; height: 100vh !important;
+  height: 100dvh !important; }  /* dvh: mobile browser bars don't hide the bottom */
 .leaflet-bar { border: 1px solid var(--border) !important; border-radius: 10px !important;
   overflow: hidden; box-shadow: var(--shadow-lg) !important; }
 .leaflet-bar a, .leaflet-bar a:hover { background: var(--surface-2); color: var(--text);
@@ -269,12 +267,41 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
   color: var(--text); }
 .uhi-keys i { display: inline-block; width: 12px; height: 12px; border-radius: 3px;
   vertical-align: -2px; margin-right: 5px; }
+
+/* ===== Phones, touch and motion (kept last so it wins the cascade) ===== */
+@media (max-width: 768px) {
+  .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 0; }
+  .leaflet-bottom { bottom: 272px; }  /* clears the collapsed "peek" sheet (~265 px) */
+  /* Compact legend: the heat ramp only, top-left; the swatches live in the panel's Tune. */
+  .uhi-legend { top: 10px; left: 10px; right: auto; bottom: auto; width: 168px;
+    padding: 7px 9px; border-radius: 10px; }
+  .uhi-legend .uhi-kicker, .uhi-legend .uhi-keys { display: none; }
+  .uhi-ramp { margin: 0 0 3px; }
+  .uhi-pin { width: 24px; height: 24px; font-size: 11px; line-height: 20px; }
+  .uhi-card { width: 232px; }
+}
+@media (max-width: 768px) and (hover: hover) {
+  .uhi-legend { left: 56px; }  /* mouse on a narrow window: keep clear of the zoom buttons */
+}
+@media (hover: none) {
+  /* Touch: no hover cards (a tap opens the panel's Zone section) and pinch to zoom. */
+  .leaflet-tooltip.uhi-tip { display: none !important; }
+  .leaflet-control-zoom { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .uhi-pin:after { animation: none; display: none; }
+}
 """.replace("FONT_STACK", FONT_STACK)
 
 MAP_CSS = (
     f'<link rel="stylesheet" href="{INTER_CSS_URL}">\n'
     f"<style>\n{css_vars()}\n{_MAP_STYLES}</style>\n"
 )
+
+
+def _ramp_index(lo: float, hi: float) -> list[float]:
+    """Anomaly values (°C) at which the five ``HEAT_RAMP`` colours sit."""
+    return [lo, 0.0, 0.35 * hi, 0.7 * hi, hi]
 
 
 def _legend_html(lo: float, hi: float, index: list[float]) -> str:
@@ -298,10 +325,9 @@ def _legend_html(lo: float, hi: float, index: list[float]) -> str:
     )
 
 
-def _heat_layer(scored: gpd.GeoDataFrame, m: folium.Map) -> folium.FeatureGroup:
+def _heat_layer(scored: gpd.GeoDataFrame) -> folium.FeatureGroup:
     lo, hi = heat_domain(scored["lst_anomaly_c"])
-    index = [lo, 0.0, 0.35 * hi, 0.7 * hi, hi]
-    cmap = cm.LinearColormap(HEAT_RAMP, index=index, vmin=lo, vmax=hi)
+    cmap = cm.LinearColormap(HEAT_RAMP, index=_ramp_index(lo, hi), vmin=lo, vmax=hi)
     anomaly = scored["lst_anomaly_c"]
     clipped = anomaly.clip(lo, hi)
     colours = clipped.map(lambda v: cmap(v) if pd.notna(v) else NODATA)
@@ -332,7 +358,6 @@ def _heat_layer(scored: gpd.GeoDataFrame, m: folium.Map) -> folium.FeatureGroup:
         highlight_function=lambda _f: {"weight": 1.5, "color": TEXT},
         on_each_feature=CELL_TOOLTIP_JS,
     ).add_to(group)
-    m.get_root().html.add_child(folium.Element(_legend_html(lo, hi, index)))
     return group
 
 
@@ -408,20 +433,69 @@ def _zones_layer(
     return group
 
 
-def build_map(
-    scored: gpd.GeoDataFrame,
-    zones: gpd.GeoDataFrame,
-    layers: dict[str, gpd.GeoDataFrame],
-    toggles: tuple[bool, bool, bool],
-) -> folium.Map:
-    """Build a fresh Folium map for the current scores, zones and layer toggles.
+def _bounds(gdf: gpd.GeoDataFrame) -> list[list[float]]:
+    """``[[south, west], [north, east]]`` of a WGS84 frame, rounded so the script is stable."""
+    minx, miny, maxx, maxy = (round(float(v), 6) for v in gdf.total_bounds)
+    return [[miny, minx], [maxy, maxx]]
 
-    Deliberately not cached: streamlit-folium leaves stale variable names in its output when
-    the same ``folium.Map`` object is rendered twice, which blanks the map on the next rerun
-    (e.g. after a click). Construction is cheap; GeoJSON serialisation runs every rerun anyway.
+
+class ResponsiveFit(MacroElement):
+    """``fitBounds`` that frames the data around the panel, decided in the browser.
+
+    Desktop: the floating panel covers the left ~392 px, so pad that side. Phones (≤ 768 px):
+    the collapsed bottom sheet covers the bottom ~272 px, so pad the bottom, and frame the
+    top-K zones rather than the whole city so the numbered pins don't pile up. The breakpoint
+    and paddings mirror ``theme.FELT_CSS`` / ``MAP_CSS``.
     """
-    show_heat, show_parks, show_zones = toggles
 
+    _template = Template(
+        """
+        {% macro script(this, kwargs) %}
+        (function (map) {
+          // The iframe is resized to the viewport (by CSS / the streamlit-folium frontend)
+          // after this script runs, so a fit at load is computed against the wrong size. Fit
+          // when ready and again on container resizes during the first seconds, before the
+          // user has had a chance to pan; later resizes leave their view alone.
+          var t0 = Date.now(), userMoved = false;
+          function moved() { userMoved = true; }
+          map.on('dragstart', moved);
+          map.getContainer().addEventListener('wheel', moved, {passive: true});
+          map.getContainer().addEventListener('touchstart', moved, {passive: true});
+          function fit() {
+            if (userMoved) { return; }
+            map.invalidateSize();
+            var phone = window.matchMedia('(max-width: 768px)').matches;
+            map.fitBounds(
+              phone ? {{ this.phone_bounds|tojson }} : {{ this.bounds|tojson }},
+              // animate: false - an animated pan is cancelled by the frontend's own resize.
+              phone ? {paddingTopLeft: [12, 12], paddingBottomRight: [12, 284], animate: false}
+                    : {paddingTopLeft: [392, 24], paddingBottomRight: [24, 24], animate: false}
+            );
+          }
+          map.whenReady(function () { setTimeout(fit, 0); });
+          map.on('resize', function () { if (Date.now() - t0 < 5000) { fit(); } });
+        })({{ this._parent.get_name() }});
+        {% endmacro %}
+        """
+    )
+
+    def __init__(self, bounds: list[list[float]], phone_bounds: list[list[float]]) -> None:
+        super().__init__()
+        self._name = "ResponsiveFit"
+        self.bounds = bounds
+        self.phone_bounds = phone_bounds
+
+
+def build_base_map(grid: gpd.GeoDataFrame, default_zones: gpd.GeoDataFrame) -> folium.Map:
+    """The static part of the map: basemaps, labels, CSS, legend, framing and layer switcher.
+
+    Its inputs never change with the weights or toggles, so its generated script is identical
+    on every rerun. st_folium derives the component key from that script, so the map is not
+    remounted and keeps the user's pan and zoom; everything that does change is passed
+    separately as ``dynamic_layers`` (``st_folium(feature_group_to_add=...)``).
+
+    Built fresh each run (never cached): streamlit-folium mutates the map when it renders.
+    """
     m = folium.Map(
         location=list(config.EDINBURGH_CENTER_LATLON),
         zoom_start=12,
@@ -441,15 +515,9 @@ def build_map(
             max_zoom=19,
         ).add_to(m)
 
-    if show_heat:
-        _heat_layer(scored, m).add_to(m)
-    if show_parks:
-        _parks_layer(layers["parks"]).add_to(m)
-    if show_zones:
-        _zones_layer(scored, zones, layers["corridors"]).add_to(m)
-
     if labels is not None:
-        # Street/place labels float above the choropleth but below pins and tooltips.
+        # Street/place labels float above the choropleth (overlayPane, z 400) but below
+        # pins and tooltips.
         folium.map.CustomPane("labels", z_index=450, pointer_events=False).add_to(m)
         folium.TileLayer(
             tiles=labels.url,
@@ -460,7 +528,26 @@ def build_map(
             max_zoom=19,
         ).add_to(m)
 
-    minx, miny, maxx, maxy = scored.total_bounds
-    m.fit_bounds([[miny, minx], [maxy, maxx]])
+    lo, hi = heat_domain(grid["lst_anomaly_c"])  # anomaly is weight-independent
+    m.get_root().html.add_child(folium.Element(_legend_html(lo, hi, _ramp_index(lo, hi))))
+    ResponsiveFit(_bounds(grid), _bounds(default_zones)).add_to(m)
     folium.LayerControl(collapsed=True).add_to(m)
     return m
+
+
+def dynamic_layers(
+    scored: gpd.GeoDataFrame,
+    zones: gpd.GeoDataFrame,
+    layers: dict[str, gpd.GeoDataFrame],
+    toggles: tuple[bool, bool, bool],
+) -> list[folium.FeatureGroup]:
+    """The layers that depend on weights, K and the toggles, in draw order."""
+    show_heat, show_parks, show_zones = toggles
+    groups = []
+    if show_heat:
+        groups.append(_heat_layer(scored))
+    if show_parks:
+        groups.append(_parks_layer(layers["parks"]))
+    if show_zones:
+        groups.append(_zones_layer(scored, zones, layers["corridors"]))
+    return groups

@@ -689,7 +689,7 @@ Columns: `st.columns([0.7, 0.3])` under the KPI row. The right column shows the 
 | `recommendation` | Suggested action | text (only if eligible) |
 
   Features carry compact raw properties (`tooltip_props`: `nb, st, ps, an, pd, pk, im, rc, ex`), and the browser formats them, which keeps the payload small. The card builder is inlined in each `onEachFeature` because streamlit-folium does not execute header `<script>` tags.
-- `fit_bounds` to the urban cells' extent.
+- Framing: `ResponsiveFit` fits the grid extent beside the panel on desktop and the top-K zones above the bottom sheet on phones (§7.9).
 
 ### 7.5 Interactivity
 
@@ -704,7 +704,7 @@ Columns: `st.columns([0.7, 0.3])` under the KPI row. The right column shows the 
 ### 7.6 Performance and caching
 
 - `@st.cache_data` loaders for each `web/*.parquet` and the metadata JSON.
-- Build a **fresh** Folium map on every rerun. Do not cache the `folium.Map` object: streamlit-folium 0.27 leaves stale `geo_json_<hash>` names in its script when the same object renders twice, and the map goes blank after a click-triggered rerun. Construction is cheap, and serialisation runs every rerun anyway.
+- Build a **fresh** Folium map on every rerun. Do not cache the `folium.Map` object: streamlit-folium 0.27 leaves stale `geo_json_<hash>` names in its script when the same object renders twice, and the map goes blank after a click-triggered rerun. Construction is cheap, and serialisation runs every rerun anyway. Only the dynamic layers' GeoJSON reaches the browser on reruns; the base map is not remounted (§7.9).
 - Payload budget: grid ≤ ~2,500 polygons with ≤ 8 tooltip properties; parks simplified; total GeoJSON sent to the browser ≲ 4 MB.
 - Import guard at the top of `app.py`: if `import edinburgh_uhi` fails (e.g. the host didn't install the project itself), prepend `Path(__file__).resolve().parents[1]` (the `src/` dir) to `sys.path`. This keeps `streamlit run src/edinburgh_uhi/app.py` working whether or not the package is installed.
 
@@ -751,7 +751,7 @@ Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
 | `theme.py` | Design tokens, Python colour aliases and the page stylesheet (panel, bottom sheet, widget adapters) | injection only |
 | `components.py` | Pure builders: header, KPI strip, peek card, inspector, weight-mix bar, ranked list, CSV export, label maps, `score_colour` | no |
 | `model.py` | `normalise_weights`, `rescore`, `rerank` (calls `scoring.priority` / `select_top_zones`; no geometry ops) | no |
-| `map_view.py` | Basemaps, layers, hover cards, legend, `build_map` | `st.secrets` only |
+| `map_view.py` | Static `build_base_map` (basemaps, legend, `ResponsiveFit`) and `dynamic_layers` (heat, greenspace, zones, hover cards) | `st.secrets` only |
 | `state.py` | Session-state model (below) | no (takes the state mapping as an argument) |
 | `panel.py` | Streamlit renderers: `render_panel` (header, peek, section nav) and one renderer per section | yes |
 
@@ -768,8 +768,15 @@ Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
 - `.streamlit/config.toml` mirrors the surface/text tokens and loads Inter (`font = "Inter:<url>"`).
 - Selectors that reach into Streamlit's internal widget DOM live in one marked block in `FELT_CSS`. Re-check it after any Streamlit upgrade. It currently covers: equal-width segmented controls with a light active chip (`button[data-variant="segmented_control"][aria-checked]`); the ink knob of an "on" toggle; slider thumbs (`[style*="translate(-50%, -50%)"]`, react-aria) enlarged and coloured per component (the fill is a JS-computed gradient and stays near-white); label swatches; and resetting `stMarkdownContainer`'s `margin-bottom: -1rem`, which otherwise overlaps raw-HTML blocks.
 
-**Bottom sheet (≤ 768 px).** Pure CSS, no JavaScript: the panel docks to the bottom edge with a grab handle and sizes to its content (~265 px "peek"). `.st-key-felt_panel:has(.st-key-panel_body)` (the body container exists only while a section is open) switches it to a 62dvh sheet that scrolls internally, and hides the title and KPI strip to give the section room. The mobile media query is the last block in `FELT_CSS` so it wins the cascade; the map's bottom controls are offset by the peek height in `map_view`.
 - `tests/test_ui.py` fails on raw hex in the stylesheets or hover-card JS, on `var(--x)` references to unknown tokens, and on `config.toml` drifting from the tokens.
+
+**Bottom sheet (≤ 768 px).** Pure CSS, no JavaScript: the panel docks to the bottom edge with a grab handle and sizes to its content (~265 px "peek"). `.st-key-felt_panel:has(.st-key-panel_body)` (the body container exists only while a section is open) switches it to a 62dvh sheet that scrolls internally, and hides the title and KPI strip to give the section room. The mobile media query is the last block in `FELT_CSS` so it wins the cascade; the map's bottom controls are offset by the peek height in `map_view`.
+
+**Map: static base + dynamic layers (TASKS Ticket 6, Phase 4).**
+- `build_base_map(grid, default_zones)` holds only what never changes with the controls: basemaps, labels pane, `MAP_CSS`, the legend (its ramp depends only on `lst_anomaly_c`), `ResponsiveFit` and the basemap `LayerControl`. `dynamic_layers(scored, zones, layers, toggles)` returns the heat / greenspace / top-zone FeatureGroups, passed as `st_folium(feature_group_to_add=...)`.
+- Why: st_folium keys its component on a hash of the base map's script. With a byte-identical base script the iframe is never remounted, so weight, K and toggle changes swap layers in place and the user keeps their pan and zoom (previously every change reloaded the map and reset the view). The frontend re-binds click handlers on swapped layers, so map clicks keep working. Bounds are rounded so the script is stable; `test_base_map_key_is_stable_across_builds` guards it.
+- `ResponsiveFit` (a `MacroElement`) fits in the browser: desktop pads 392 px on the left for the panel; phones (≤ 768 px) frame the default top-K zones and pad 284 px at the bottom for the peek sheet. It runs on `whenReady` and on container resizes during the first 5 s (until the user drags, scrolls or touches), with `animate: false`, because the frontend resizes the iframe after the map script runs and cancels an animated pan.
+- Touch (`@media (hover: none)`): hover cards and zoom buttons are hidden; a tap selects the cell and opens the Zone section, pinch zooms. Phones get a compact ramp-only legend top-left (the full key lives in Tune's label swatches) and smaller pins. `prefers-reduced-motion` stops the pin pulse. Full-height rules use `100dvh` (with a `100vh` fallback) so mobile browser bars don't hide the bottom of the map.
 
 ---
 

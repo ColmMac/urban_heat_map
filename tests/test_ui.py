@@ -10,8 +10,12 @@ import re
 import tomllib
 from pathlib import Path
 
+import folium
+import geopandas as gpd
 import pandas as pd
 import pytest
+from shapely.geometry import LineString, box
+from streamlit_folium import _get_map_string, generate_js_hash
 
 from edinburgh_uhi import config
 from edinburgh_uhi.config import Weights
@@ -36,6 +40,8 @@ from edinburgh_uhi.ui.map_view import (
     CORRIDOR_TOOLTIP_JS,
     MAP_CSS,
     PARK_TOOLTIP_JS,
+    build_base_map,
+    dynamic_layers,
     heat_domain,
     tooltip_props,
 )
@@ -434,3 +440,67 @@ def test_streamlit_config_mirrors_tokens() -> None:
     assert theme["primaryColor"] == TOKENS["text"]
     assert theme["borderColor"] == TOKENS["border"]
     assert theme["font"].startswith("Inter:https://fonts.googleapis.com/")
+
+
+# --------------------------------------------------------------------------------------
+# map_view: static base map + dynamic layers (no remount on reruns)
+# --------------------------------------------------------------------------------------
+def _web_layers() -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, dict[str, gpd.GeoDataFrame]]:
+    """Tiny EPSG:4326 stand-ins for the web layers: two scored cells, one park, one corridor."""
+    cells = pd.DataFrame([_cell(), _cell(cell_id="C2", zone_rank=2, lst_anomaly_c=-0.5)])
+    geoms = [box(-3.20, 55.95, -3.19, 55.96), box(-3.19, 55.95, -3.18, 55.96)]
+    scored = gpd.GeoDataFrame(cells, geometry=geoms, crs="EPSG:4326")
+    zones = scored.copy()
+    parks = gpd.GeoDataFrame(
+        {"park_id": [1], "name": ["The Meadows"], "area_ha": [25.0]},
+        geometry=[box(-3.195, 55.94, -3.185, 55.945)],
+        crs="EPSG:4326",
+    )
+    corridors = gpd.GeoDataFrame(
+        {"cell_id": ["C1"], "main_street": ["Leith Walk"]},
+        geometry=[LineString([(-3.199, 55.951), (-3.191, 55.959)])],
+        crs="EPSG:4326",
+    )
+    return scored, zones, {"parks": parks, "corridors": corridors}
+
+
+def _map_key(m: folium.Map) -> str:
+    return generate_js_hash(_get_map_string(m), "map", False)
+
+
+def test_base_map_key_is_stable_across_builds() -> None:
+    """st_folium keys the component on the base map's script: equal keys = no remount."""
+    scored, zones, _ = _web_layers()
+    assert _map_key(build_base_map(scored, zones)) == _map_key(build_base_map(scored, zones))
+
+
+def test_base_map_holds_no_data_layers_and_frames_responsively() -> None:
+    scored, zones, _ = _web_layers()
+    script = _get_map_string(build_base_map(scored, zones))
+    assert "geo_json" not in script  # data layers travel separately (feature_group_to_add)
+    assert "max-width: 768px" in script and "animate: false" in script
+    assert "[[55.95, -3.2], [55.96, -3.18]]" in script  # bounds rounded, lat/lng order
+
+
+@pytest.mark.parametrize(
+    ("toggles", "names"),
+    [
+        ((True, True, True), ["Surface heat anomaly", "Cooling greenspace ≥ 0.5 ha", "Top 2"]),
+        ((False, True, False), ["Cooling greenspace ≥ 0.5 ha"]),
+        ((False, False, False), []),
+    ],
+)
+def test_dynamic_layers_follow_toggles(toggles: tuple[bool, bool, bool], names: list[str]) -> None:
+    scored, zones, layers = _web_layers()
+    groups = dynamic_layers(scored, zones, layers, toggles)
+    assert len(groups) == len(names)
+    for group, name in zip(groups, names, strict=True):
+        assert group.layer_name.startswith(name)
+
+
+def test_map_css_adapts_to_touch_and_motion() -> None:
+    assert "@media (hover: none)" in _MAP_STYLES
+    assert "prefers-reduced-motion" in _MAP_STYLES
+    assert "100dvh" in _MAP_STYLES
+    # the phone block comes after the base legend rule so it wins the cascade
+    assert _MAP_STYLES.index(".uhi-legend { top: 10px") > _MAP_STYLES.index(".uhi-legend {")
