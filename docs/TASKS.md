@@ -446,6 +446,7 @@ uv run pytest
   - [x] Phone sheet tracking (Phase 4 leftover): map controls follow the live sheet height; a tapped place is panned clear of the opened sheet; untouched maps refit into the visible strip.
   - [ ] Real-device QA (manual): iOS Safari and Android Chrome. Check `100dvh` with the browser bars showing/hiding, `backdrop-filter` scrolling performance in the sheet, that tapping a cell opens Zone and keeps it in view, pinch zoom, the sticky nav, and that `--sheet-h` follows the sheet (the browser pane used in development can't confirm ResizeObserver timing because it doesn't render while hidden; the 1 s tick covers it).
   - [ ] Redeploy to Streamlit Community Cloud from `main` and smoke-test from a fresh session (ARCHITECTURE §7.7).
+  - [x] Close the sheet on phones: the handle is a "Hide panel" button; a floating "Show panel" pill brings it back; a map tap reopens it on Zone. Desktop unchanged.
   - Known limitation: `env(safe-area-inset-bottom)` resolves to 0 because Streamlit's viewport meta has no `viewport-fit=cover`; the sheet's 12 px bottom padding is the margin above the iOS home indicator.
 
 **Out of scope:** new analysis, changes to scoring maths or data contracts.

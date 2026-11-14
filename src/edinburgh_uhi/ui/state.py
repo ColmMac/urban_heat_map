@@ -26,6 +26,7 @@ MAP_KEY = "map"  # st_folium copies each click into this plain (non-widget) key
 SELECTED_KEY = "sel_cell"
 VIEW_KEY = "panel_view"  # open panel section, or None for the collapsed "peek" sheet
 ZONE_VIEW = "zone"
+SHEET_HIDDEN_KEY = "sheet_hidden"  # phones only: bottom sheet closed to a "Show panel" pill
 PERSIST = "page"  # persist_state for every control widget (kept while its section is closed)
 
 MODEL_DEFAULTS: dict[str, Any] = {
@@ -53,6 +54,17 @@ def init_state(state: State, demo: bool) -> None:
     state.setdefault("t_zones", not demo)  # ?demo=1 starts with zones hidden for the reveal
     state.setdefault(SELECTED_KEY, None)
     state.setdefault(VIEW_KEY, None)
+    state.setdefault(SHEET_HIDDEN_KEY, False)
+
+
+def hide_sheet(state: State) -> None:
+    """``on_click``: close the phone bottom sheet so the map fills the screen."""
+    state[SHEET_HIDDEN_KEY] = True
+
+
+def show_sheet(state: State) -> None:
+    """``on_click``: bring the phone bottom sheet back."""
+    state[SHEET_HIDDEN_KEY] = False
 
 
 def reset_model(state: State) -> None:
@@ -80,6 +92,7 @@ def consume_map_click(state: State) -> bool:
         return False
     state[SELECTED_KEY] = cell
     state[VIEW_KEY] = ZONE_VIEW  # tapping the map opens the inspector (half sheet on phones)
+    state[SHEET_HIDDEN_KEY] = False  # ...and brings a closed sheet back to show it
     return True
 
 

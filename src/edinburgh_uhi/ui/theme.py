@@ -318,6 +318,9 @@ iframe[title*="st_folium"] {
 }
 /* ===== end widget internals ===== */
 
+/* Hide / show the sheet is a phone-only control. */
+.st-key-sheet_hide, .st-key-sheet_show { display: none !important; }
+
 /* ===== Phones: the panel becomes a bottom sheet (kept last so it wins the cascade) ===== */
 @media (max-width: 768px) {
   .st-key-felt_panel, div.st-key-felt_panel[data-testid="stVerticalBlock"] {
@@ -327,10 +330,25 @@ iframe[title*="st_folium"] {
     z-index: 9999 !important; border-radius: 18px 18px 0 0 !important; border-bottom: 0 !important;
     padding: 6px 14px calc(12px + env(safe-area-inset-bottom)) !important;
   }
-  /* Grab handle */
-  .st-key-felt_panel::before {
-    content: ""; display: block; flex: none; width: 36px; height: 4px; border-radius: 2px;
-    background: var(--faint); margin: 2px auto 2px;
+  /* Grab handle = "Hide panel" button: pinned to the top of the sheet, label for screen
+     readers only, a pill + down-chevron for sight. */
+  .st-key-felt_panel > .st-key-sheet_hide {
+    display: block !important; position: sticky; top: -6px; z-index: 6;
+    margin: -6px -14px -6px; padding: 0 14px; background: var(--surface);
+  }
+  .st-key-sheet_hide button {
+    width: 100%; min-height: 30px; height: 30px; padding: 0; gap: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border: 0 !important; background: transparent !important; box-shadow: none !important;
+    color: var(--muted) !important;
+  }
+  .st-key-sheet_hide button::before {
+    content: ""; flex: none; width: 36px; height: 4px; border-radius: 2px;
+    background: var(--faint); margin-top: 4px;
+  }
+  .st-key-sheet_hide button p {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
   /* A section is open: half-height sheet that scrolls internally. */
   /* (Same selector shape as the sheet rule above, so it wins on specificity.) */
@@ -344,12 +362,35 @@ iframe[title*="st_folium"] {
     display: none;
   }
   .st-key-felt_panel [data-testid="stVerticalBlock"] { gap: 8px; }
-  .st-key-felt_panel > .st-key-panel_view { top: -6px; }  /* sheet padding-top is 6px */
+  .st-key-felt_panel > .st-key-panel_view { top: 18px; }  /* pinned just below the handle */
   .uhi-eyebrow, .uhi-sub { display: none; }
   .uhi-title { font-size: 16px !important; margin: 0 0 8px !important; }
   .uhi-kpi { padding: 7px 7px; }
   .uhi-kpi b { font-size: 14px; }
   .uhi-kpi span { font-size: 10px; }
+
+  /* Sheet closed: the panel shrinks to a floating "Show panel" pill and the map is uncovered.
+     (Same selector shape as the sheet rules above and later in the file, so it wins.) */
+  .st-key-felt_panel:has(.st-key-sheet_show),
+  div.st-key-felt_panel[data-testid="stVerticalBlock"]:has(.st-key-sheet_show) {
+    left: 50% !important; right: auto !important; width: auto !important;
+    transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    height: auto !important; padding: 0 !important; overflow: visible !important;
+    background: transparent !important; border: 0 !important; box-shadow: none !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  }
+  .st-key-felt_panel:has(.st-key-sheet_show) > :not(.st-key-sheet_show) {
+    display: none !important;
+  }
+  .st-key-felt_panel > .st-key-sheet_show { display: block !important; }
+  .st-key-sheet_show button {
+    min-height: 42px; padding: 0 18px 0 14px; border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+    border: 1px solid var(--line-strong) !important; box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    color: var(--text) !important;
+  }
+  .st-key-sheet_show button p { font-size: 14px; font-weight: 600; }
 }
 """
 

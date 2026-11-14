@@ -34,7 +34,16 @@ from edinburgh_uhi.ui.components import (
     zone_rank,
     zones_csv,
 )
-from edinburgh_uhi.ui.state import PERSIST, VIEW_KEY, ZONE_VIEW, ModelState, reset_model
+from edinburgh_uhi.ui.state import (
+    PERSIST,
+    SHEET_HIDDEN_KEY,
+    VIEW_KEY,
+    ZONE_VIEW,
+    ModelState,
+    hide_sheet,
+    reset_model,
+    show_sheet,
+)
 
 SECTIONS = {ZONE_VIEW: "Zone", "tune": "Tune", "rank": "Ranking", "about": "About"}
 BODY_KEY = "panel_body"
@@ -141,7 +150,30 @@ def render_about(meta: dict[str, Any]) -> None:
 def render_panel(
     meta: dict[str, Any], model: ModelState, zones: pd.DataFrame, selected: pd.Series
 ) -> None:
-    """Draw the whole panel; call inside ``st.container(key="felt_panel")``."""
+    """Draw the whole panel; call inside ``st.container(key="felt_panel")``.
+
+    Phones can close the sheet completely: the handle at its top is a "Hide panel" button,
+    and while hidden only a floating "Show panel" pill is visible (``theme.FELT_CSS`` keys off
+    ``.st-key-sheet_show``). The rest of the panel is still drawn, so desktop (where neither
+    button is displayed) is unaffected and widget state is untouched.
+    """
+    if st.session_state.get(SHEET_HIDDEN_KEY):
+        st.button(
+            "Show panel",
+            key="sheet_show",
+            icon=":material/keyboard_arrow_up:",
+            on_click=show_sheet,
+            args=(st.session_state,),
+        )
+    else:
+        st.button(
+            "Hide panel",
+            key="sheet_hide",
+            icon=":material/keyboard_arrow_down:",
+            on_click=hide_sheet,
+            args=(st.session_state,),
+            width="stretch",
+        )
     rank = zone_rank(zones, selected["cell_id"])
     _html(header_html(meta) + kpi_strip_html(kpi_items(meta, len(zones))))
 
