@@ -440,7 +440,13 @@ uv run pytest
 - [x] **Phase 2 — Design tokens.** One `TOKENS` dict injected into the page and the map iframe; richer `config.toml` theme (Inter, radius, border, dataframe colours); hard-coded hex removed from CSS, hover-card JS and Altair; token tests in `test_ui.py`. Monochrome primary needed one widget-internals rule (ink knob on an "on" toggle).
 - [x] **Phase 3 — Panel layout.** Header + HTML KPI strip + peek card + `st.segmented_control` sections (Zone / Tune / Ranking / About); `:has()`-driven bottom sheet (peek ≈ 265 px, open = 62dvh with header/KPIs collapsed); weight-mix bar, component-coloured slider thumbs, required K segmented control; HTML ranked list + CSV download; map click opens Zone. Controls use `persist_state="page"` (Streamlit 1.67) instead of the key re-assignment workaround; `test_app.py` covers weights/toggles/K surviving a section switch. Mobile eyebrow bug fixed (media query moved to the end of the stylesheet). Removed: `st.metric` KPIs, `st.dataframe` table, Altair breakdown chart, expander footer.
 - [x] **Phase 4 — Map.** Static `build_base_map` + `dynamic_layers` via `st_folium(feature_group_to_add=...)`: weight/K/toggle changes no longer remount the map, so pan and zoom survive (spike verified in the browser; key stability unit-tested). `ResponsiveFit` frames the grid beside the desktop panel and the top-K zones above the phone sheet (`animate: false`, refit on early resizes). Touch: no hover cards or zoom buttons, tap opens Zone. Compact phone legend, smaller pins, `prefers-reduced-motion`, `100dvh`. Not done: with a section open on a phone (62dvh) the map is not re-framed into the remaining strip; the bottom controls keep the fixed 272 px peek offset.
-- [ ] **Phase 5 — Polish & QA.** Focus rings, contrast, iOS Safari / Android Chrome checks, Streamlit Cloud redeploy.
+- [ ] **Phase 5 — Polish & QA.**
+  - [x] Contrast audit: `faint` raised to `#6E7988` and kept off text; badge text via `score_ink`; ranking scores become badges; WCAG tests in `test_ui.py`.
+  - [x] Keyboard audit: focus ring forwarded to toggle tracks and slider thumbs (they focus a hidden `<input>`); sticky section nav.
+  - [x] Phone sheet tracking (Phase 4 leftover): map controls follow the live sheet height; a tapped place is panned clear of the opened sheet; untouched maps refit into the visible strip.
+  - [ ] Real-device QA (manual): iOS Safari and Android Chrome. Check `100dvh` with the browser bars showing/hiding, `backdrop-filter` scrolling performance in the sheet, that tapping a cell opens Zone and keeps it in view, pinch zoom, the sticky nav, and that `--sheet-h` follows the sheet (the browser pane used in development can't confirm ResizeObserver timing because it doesn't render while hidden; the 1 s tick covers it).
+  - [ ] Redeploy to Streamlit Community Cloud from `main` and smoke-test from a fresh session (ARCHITECTURE §7.7).
+  - Known limitation: `env(safe-area-inset-bottom)` resolves to 0 because Streamlit's viewport meta has no `viewport-fit=cover`; the sheet's 12 px bottom padding is the margin above the iOS home indicator.
 
 **Out of scope:** new analysis, changes to scoring maths or data contracts.
 
@@ -455,4 +461,4 @@ uv run pytest
 | 3 | `scoring.py` | [x] | 1,444 eligible cells; 15 zones; web/ 1.7 MB; commit `data/processed/` |
 | 4 | `tests/*`, CI | [x] | 54 offline tests + 10 `-m data` tests pass; `.github/workflows/ci.yml` created |
 | 5 | `app.py`, `.streamlit/config.toml` | [x] | dashboard built and smoke-tested; Streamlit Cloud deploy + recording still manual |
-| 6 | `app.py`, `ui/*`, `tests/test_ui.py`, `tests/test_app.py` | [ ] | Phases 0–4 done (module split, state-first, design tokens, bottom-sheet panel, map); Phase 5 open |
+| 6 | `app.py`, `ui/*`, `tests/test_ui.py`, `tests/test_app.py` | [ ] | Phases 0–4 done; Phase 5 code done (contrast, keyboard, sheet-aware map); real-device QA and Cloud redeploy open |

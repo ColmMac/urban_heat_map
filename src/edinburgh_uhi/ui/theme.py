@@ -30,7 +30,7 @@ TOKENS: dict[str, str] = {
     "text-hi": "#F8FAFC",
     "text": "#E7EBF0",
     "muted": "#8A94A3",
-    "faint": "#5A6472",
+    "faint": "#6E7988",  # non-text UI only (≥ 3:1); text uses muted (≥ 4.5:1)
     "focus": "#93C5FD",
     # Data semantics: the only saturated colours on screen.
     "heat": "#F97316",
@@ -60,6 +60,7 @@ BG = TOKENS["bg"]
 PANEL = TOKENS["surface-2"]
 BORDER = TOKENS["border"]
 TEXT = TOKENS["text"]
+TEXT_HI = TOKENS["text-hi"]
 MUTED = TOKENS["muted"]
 ACCENT = TOKENS["heat"]
 AMBER = TOKENS["heat-warm"]
@@ -127,7 +128,7 @@ iframe[title*="st_folium"] {
   font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
   color: var(--muted); margin: 6px 0 0;
 }
-.uhi-hint { color: var(--faint); font-size: 12px; margin-top: -2px; }
+.uhi-hint { color: var(--muted); font-size: 12px; margin-top: -2px; }
 
 /* ===== Header + KPI strip ===== */
 .uhi-eyebrow {
@@ -163,7 +164,7 @@ iframe[title*="st_folium"] {
 }
 .uhi-peek-score {
   flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
-  color: var(--text-hi); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 .uhi-peek-body { min-width: 0; flex: 1; }
 .uhi-peek-k { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
@@ -186,7 +187,7 @@ iframe[title*="st_folium"] {
 .uhi-insp-nb { font-size: 19px; font-weight: 700; color: var(--text-hi); line-height: 1.2; }
 .uhi-insp-st { color: var(--muted); font-size: 13px; }
 .uhi-insp-score {
-  text-align: center; border-radius: 10px; padding: 5px 10px; color: var(--text-hi);
+  text-align: center; border-radius: 10px; padding: 5px 10px;
   min-width: 60px;
 }
 .uhi-insp-score b { display: block; font-size: 24px; line-height: 1.1;
@@ -198,7 +199,7 @@ iframe[title*="st_folium"] {
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 8px;
 }
 .uhi-insp-stats span { display: block; font-size: 9.5px; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--faint); }
+  text-transform: uppercase; color: var(--muted); }
 .uhi-insp-stats b { font-size: 15px; color: var(--text-hi); font-variant-numeric: tabular-nums; }
 .uhi-bar { margin: 6px 0; font-size: 12px; color: var(--text); }
 .uhi-bar-row { display: flex; justify-content: space-between; }
@@ -242,8 +243,8 @@ iframe[title*="st_folium"] {
 .uhi-rank-top b { font-size: 13px; font-weight: 600; color: var(--text-hi); }
 .uhi-rank-top small { font-size: 11.5px; color: var(--muted); overflow: hidden;
   text-overflow: ellipsis; }
-.uhi-rank-score { font-size: 14px; font-weight: 700; text-align: right;
-  font-variant-numeric: tabular-nums; }
+.uhi-rank-score { font-size: 13px; font-weight: 700; text-align: center; border-radius: 6px;
+  padding: 2px 0; font-variant-numeric: tabular-nums; }
 
 /* ===== Streamlit 1.67 widget internals (react-aria). Re-check after any upgrade. ===== */
 /* Section nav and K selector: equal-width segments; the active one is a light chip. */
@@ -261,6 +262,12 @@ iframe[title*="st_folium"] {
 .st-key-felt_panel button[data-variant="segmented_control"][aria-checked="true"] p {
   color: var(--bg); font-weight: 600;
 }
+/* The section nav stays reachable while a long section scrolls under it. */
+.st-key-felt_panel > .st-key-panel_view {
+  /* top = minus the panel's padding-top, so nothing peeks above the pinned nav */
+  position: sticky; top: -14px; z-index: 5; padding: 6px 0; margin: -6px 0;
+  background: var(--surface);
+}
 /* Monochrome primary: an "on" toggle has a light track, so its knob switches to ink. */
 .st-key-felt_panel label[data-selected="true"]:has(input[role="switch"]) > div:first-of-type > div {
   background: var(--bg);
@@ -274,6 +281,15 @@ iframe[title*="st_folium"] {
 .st-key-w_distance [style*="translate(-50%, -50%)"] { background: var(--green) !important; }
 .st-key-w_impervious [style*="translate(-50%, -50%)"] { background: var(--sealed) !important; }
 .st-key-felt_panel [data-testid="stSlider"] { padding-inline: 6px; }
+/* Keyboard focus: toggles and sliders focus a visually-hidden <input>, so the ring has to be
+   drawn on the visible track / thumb instead. */
+.st-key-felt_panel label:has(input[role="switch"]:focus-visible) > div:first-of-type {
+  outline: 2px solid var(--focus); outline-offset: 2px;
+}
+.st-key-felt_panel [data-testid="stSlider"]
+  [style*="translate(-50%, -50%)"]:has(input:focus-visible) {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
+}
 /* Colour swatches before the toggle / slider labels double as the map legend. */
 .st-key-t_heat [data-testid="stWidgetLabel"] p::before,
 .st-key-t_parks [data-testid="stWidgetLabel"] p::before,
@@ -328,6 +344,7 @@ iframe[title*="st_folium"] {
     display: none;
   }
   .st-key-felt_panel [data-testid="stVerticalBlock"] { gap: 8px; }
+  .st-key-felt_panel > .st-key-panel_view { top: -6px; }  /* sheet padding-top is 6px */
   .uhi-eyebrow, .uhi-sub { display: none; }
   .uhi-title { font-size: 16px !important; margin: 0 0 8px !important; }
   .uhi-kpi { padding: 7px 7px; }

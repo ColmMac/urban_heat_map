@@ -29,6 +29,7 @@ from edinburgh_uhi.ui.components import (
     peek_html,
     ranked_list_html,
     score_colour,
+    score_ink,
     weight_mix_html,
     zone_rank,
     zone_table,
@@ -40,6 +41,7 @@ from edinburgh_uhi.ui.map_view import (
     CORRIDOR_TOOLTIP_JS,
     MAP_CSS,
     PARK_TOOLTIP_JS,
+    PEEK_SHEET_PX,
     build_base_map,
     dynamic_layers,
     heat_domain,
@@ -479,6 +481,9 @@ def test_base_map_holds_no_data_layers_and_frames_responsively() -> None:
     script = _get_map_string(build_base_map(scored, zones))
     assert "geo_json" not in script  # data layers travel separately (feature_group_to_add)
     assert "max-width: 768px" in script and "animate: false" in script
+    # phones: follows the live bottom-sheet height from the (same-origin) parent page
+    assert "ResizeObserver" in script and ".st-key-felt_panel" in script
+    assert "--sheet-h" in script and f"var PEEK = {PEEK_SHEET_PX}" in script
     assert "[[55.95, -3.2], [55.96, -3.18]]" in script  # bounds rounded, lat/lng order
 
 
@@ -502,5 +507,51 @@ def test_map_css_adapts_to_touch_and_motion() -> None:
     assert "@media (hover: none)" in _MAP_STYLES
     assert "prefers-reduced-motion" in _MAP_STYLES
     assert "100dvh" in _MAP_STYLES
+    assert f"var(--sheet-h, {PEEK_SHEET_PX}px)" in _MAP_STYLES  # same fallback as the script
     # the phone block comes after the base legend rule so it wins the cascade
     assert _MAP_STYLES.index(".uhi-legend { top: 10px") > _MAP_STYLES.index(".uhi-legend {")
+
+
+# --------------------------------------------------------------------------------------
+# Accessibility: WCAG 2.2 contrast of the token pairs the stylesheets actually use
+# --------------------------------------------------------------------------------------
+def _luminance(hex_colour: str) -> float:
+    h = hex_colour.lstrip("#")
+    channels = [int(h[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+    r, g, b = (c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _contrast(a: str, b: str) -> float:
+    hi, lo = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+SURFACES = ("bg", "surface", "surface-2")
+
+
+@pytest.mark.parametrize("fg", ["text-hi", "text", "muted", "heat", "green", "sealed"])
+@pytest.mark.parametrize("bg", SURFACES)
+def test_text_tokens_meet_aa_on_every_surface(fg: str, bg: str) -> None:
+    assert _contrast(TOKENS[fg], TOKENS[bg]) >= 4.5
+
+
+@pytest.mark.parametrize("bg", SURFACES)
+def test_faint_meets_non_text_contrast(bg: str) -> None:
+    assert _contrast(TOKENS["faint"], TOKENS[bg]) >= 3.0  # WCAG 1.4.11 (UI components)
+
+
+@pytest.mark.parametrize("source", [FELT_CSS, _MAP_STYLES])
+def test_faint_is_never_used_for_text(source: str) -> None:
+    assert re.search(r"(?<![-\w])color:\s*var\(--faint\)", source) is None
+
+
+@pytest.mark.parametrize("score", [10, 30, 60, 90])
+def test_score_badges_meet_aa(score: float) -> None:
+    assert _contrast(score_ink(score), score_colour(score)) >= 4.5
+
+
+def test_active_segment_and_focus_ring_contrast() -> None:
+    assert _contrast(TOKENS["bg"], TOKENS["text"]) >= 4.5  # ink label on the light chip
+    for bg in SURFACES:
+        assert _contrast(TOKENS["focus"], TOKENS[bg]) >= 3.0
