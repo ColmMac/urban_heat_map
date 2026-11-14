@@ -120,15 +120,10 @@ def main() -> None:
     by_id = scored.set_index("cell_id", drop=False)
     selected = by_id.loc[selected_cell_id(st.session_state, by_id.index, zones.iloc[0]["cell_id"])]
 
-    # One floating master panel (`position: fixed`) holds every control; the map fills the page.
+    # One `position: fixed` panel (a bottom sheet on phones) holds everything; the map fills
+    # the page behind it.
     with st.container(key="felt_panel"):
-        panel.render_hero(meta, model.weights, model.k)
-        panel.render_kpis(meta, len(zones))
-        panel.render_controls(meta, model)
-        panel.render_inspector(selected, zones, model.weights)
-        with st.expander("Ranked zones", expanded=False):
-            panel.render_zone_table(zones)
-        panel.render_footer()
+        panel.render_panel(meta, model, zones, selected)
 
     st_folium(
         build_map(scored, zones, layers, model.toggles),

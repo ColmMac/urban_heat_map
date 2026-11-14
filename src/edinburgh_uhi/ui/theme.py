@@ -84,7 +84,7 @@ def css_vars() -> str:
 
 
 FELT_CSS = """
-/* Full-bleed canvas: the map owns the whole viewport, nothing scrolls. */
+/* ===== Page: full-bleed canvas, the map owns the viewport ===== */
 html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
   overflow: hidden !important; height: 100vh; margin: 0; padding: 0;
 }
@@ -105,157 +105,233 @@ iframe[title*="st_folium"] {
   border: none !important; display: block; width: 100vw !important; height: 100vh !important;
 }
 
-/* Floating master panel (st.container(key="felt_panel") -> .st-key-felt_panel) */
+/* ===== Panel (st.container(key="felt_panel")): floating card on desktop ===== */
 .st-key-felt_panel {
-  position: fixed; top: 20px; left: 20px; z-index: 1000; width: 350px; max-height: 90vh;
-  overflow-y: auto; box-sizing: border-box; padding: 1rem 1.1rem 1.1rem;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  position: fixed; top: 16px; left: 16px; z-index: 1000; width: 360px;
+  max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+  overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box;
+  padding: 14px 14px 16px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
   backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
   border: 1px solid var(--line); border-radius: 14px;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.04), var(--shadow-lg);
   scrollbar-width: thin; scrollbar-color: var(--faint) transparent;
 }
-/* --- Streamlit 1.67 widget internals (react-aria). Re-check these after any upgrade. --- */
+.st-key-felt_panel [data-testid="stVerticalBlock"] { gap: 10px; }
+.st-key-felt_panel :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: 11.5px; color: var(--muted); }
+.st-key-felt_panel [data-testid="stMarkdownContainer"] li { font-size: 13px; color: var(--text); }
+.uhi-side-h {
+  font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); margin: 6px 0 0;
+}
+.uhi-hint { color: var(--faint); font-size: 12px; margin-top: -2px; }
+
+/* ===== Header + KPI strip ===== */
+.uhi-eyebrow {
+  display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.uhi-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--heat);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--heat) 70%, transparent);
+}
+.uhi-title {
+  font-size: 20px !important; line-height: 1.2 !important; font-weight: 700 !important;
+  letter-spacing: -.02em; color: var(--text-hi) !important; margin: 6px 0 4px !important;
+  padding: 0 !important;
+}
+.uhi-sub { color: var(--muted); font-size: 12.5px; line-height: 1.4; margin: 0 0 12px; }
+.uhi-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.uhi-kpi {
+  min-width: 0; padding: 8px 9px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.uhi-kpi b {
+  display: block; font-size: 15px; font-weight: 600; line-height: 1.15; letter-spacing: -.01em;
+  color: var(--text-hi); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.uhi-kpi span { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.25;
+  color: var(--muted); }
+
+/* ===== Peek card (selected zone, one glance) ===== */
+.uhi-peek {
+  display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.uhi-peek-score {
+  flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  color: var(--text-hi); font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.uhi-peek-body { min-width: 0; flex: 1; }
+.uhi-peek-k { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--heat); }
+.uhi-peek-nb, .uhi-peek-rec { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uhi-peek-nb { font-size: 14px; font-weight: 600; color: var(--text-hi); }
+.uhi-peek-nb span { font-weight: 400; color: var(--muted); }
+.uhi-peek-rec { font-size: 12px; color: var(--green-pale); }
+.uhi-peek-rec b { color: var(--green); font-weight: 600; }
+.uhi-peek-rec.uhi-off, .uhi-peek-rec.uhi-off b { color: var(--muted); }
+
+/* ===== Inspector card (Zone section) ===== */
+.uhi-insp {
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 13px; color: var(--text-hi); box-shadow: var(--shadow-sm);
+}
+.uhi-insp-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.uhi-insp-k { font-size: 10.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--heat); }
+.uhi-insp-nb { font-size: 19px; font-weight: 700; color: var(--text-hi); line-height: 1.2; }
+.uhi-insp-st { color: var(--muted); font-size: 13px; }
+.uhi-insp-score {
+  text-align: center; border-radius: 10px; padding: 5px 10px; color: var(--text-hi);
+  min-width: 60px;
+}
+.uhi-insp-score b { display: block; font-size: 24px; line-height: 1.1;
+  font-variant-numeric: tabular-nums; }
+.uhi-insp-score span { font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  opacity: .85; }
+.uhi-insp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0; }
+.uhi-insp-stats div {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 8px;
+}
+.uhi-insp-stats span { display: block; font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--faint); }
+.uhi-insp-stats b { font-size: 15px; color: var(--text-hi); font-variant-numeric: tabular-nums; }
+.uhi-bar { margin: 6px 0; font-size: 12px; color: var(--text); }
+.uhi-bar-row { display: flex; justify-content: space-between; }
+.uhi-bar-row span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+.uhi-bar-track { height: 6px; border-radius: 3px; background: var(--surface-3); margin-top: 3px;
+  overflow: hidden; }
+.uhi-bar-fill { height: 100%; border-radius: 3px; }
+.uhi-insp-rec {
+  margin-top: 12px; border-left: 3px solid var(--green);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-radius: 8px; padding: 8px 11px; color: var(--green-pale); font-size: 13px;
+}
+.uhi-insp-rec span { display: block; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--green); font-weight: 600; }
+.uhi-insp-rec.uhi-off { border-left-color: var(--faint);
+  background: color-mix(in srgb, var(--faint) 18%, transparent); color: var(--muted); }
+.uhi-insp-rec.uhi-off span { color: var(--muted); }
+
+/* ===== Stacked bars, weight mix, ranked list ===== */
+.uhi-stack { display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--surface-3); }
+.uhi-stack i { display: block; height: 100%; }
+.uhi-mix-bar { height: 8px; border-radius: 4px; }
+.uhi-keys { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 12px;
+  color: var(--muted); }
+.uhi-keys i { display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+  margin-right: 5px; vertical-align: 0; }
+.uhi-keys b { color: var(--text-hi); font-weight: 600; font-variant-numeric: tabular-nums; }
+.uhi-rank-keys { margin: 0 0 6px; }
+.uhi-rank-list { list-style: none; margin: 0; padding: 0; }
+.uhi-rank-row {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr) 30px; gap: 8px; align-items: center;
+  padding: 7px 8px; margin: 0 !important; border-radius: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.uhi-rank-row.is-sel { background: var(--surface-2); border-bottom-color: transparent; }
+.uhi-rk { font-size: 12px; font-weight: 700; color: var(--heat); text-align: center;
+  font-variant-numeric: tabular-nums; }
+.uhi-rank-top { display: flex; gap: 6px; align-items: baseline; margin-bottom: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uhi-rank-top b { font-size: 13px; font-weight: 600; color: var(--text-hi); }
+.uhi-rank-top small { font-size: 11.5px; color: var(--muted); overflow: hidden;
+  text-overflow: ellipsis; }
+.uhi-rank-score { font-size: 14px; font-weight: 700; text-align: right;
+  font-variant-numeric: tabular-nums; }
+
+/* ===== Streamlit 1.67 widget internals (react-aria). Re-check after any upgrade. ===== */
+/* Section nav and K selector: equal-width segments; the active one is a light chip. */
+.st-key-felt_panel [role="radiogroup"]:has(> button[data-variant="segmented_control"]) {
+  display: flex; width: 100%;
+}
+.st-key-felt_panel button[data-variant="segmented_control"] {
+  flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 6px;
+}
+.st-key-felt_panel button[data-variant="segmented_control"] p { font-size: 13px; font-weight: 500; }
+.st-key-felt_panel button[data-variant="segmented_control"][aria-checked="true"],
+.st-key-felt_panel button[data-variant="segmented_control"][aria-checked="true"]:hover {
+  background: var(--text); border-color: var(--text); color: var(--bg);
+}
+.st-key-felt_panel button[data-variant="segmented_control"][aria-checked="true"] p {
+  color: var(--bg); font-weight: 600;
+}
 /* Monochrome primary: an "on" toggle has a light track, so its knob switches to ink. */
 .st-key-felt_panel label[data-selected="true"]:has(input[role="switch"]) > div:first-of-type > div {
   background: var(--bg);
 }
-/* --- end widget internals --- */
+/* Slider thumbs: larger touch target, coloured by the score component they weight. */
+.st-key-felt_panel [data-testid="stSlider"] [style*="translate(-50%, -50%)"] {
+  width: 18px; height: 18px; border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--line-strong), var(--shadow-sm);
+}
+.st-key-w_thermal [style*="translate(-50%, -50%)"] { background: var(--heat) !important; }
+.st-key-w_distance [style*="translate(-50%, -50%)"] { background: var(--green) !important; }
+.st-key-w_impervious [style*="translate(-50%, -50%)"] { background: var(--sealed) !important; }
+.st-key-felt_panel [data-testid="stSlider"] { padding-inline: 6px; }
+/* Colour swatches before the toggle / slider labels double as the map legend. */
+.st-key-t_heat [data-testid="stWidgetLabel"] p::before,
+.st-key-t_parks [data-testid="stWidgetLabel"] p::before,
+.st-key-t_zones [data-testid="stWidgetLabel"] p::before,
+.st-key-w_thermal [data-testid="stWidgetLabel"] p::before,
+.st-key-w_distance [data-testid="stWidgetLabel"] p::before,
+.st-key-w_impervious [data-testid="stWidgetLabel"] p::before {
+  content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  margin-right: 8px; vertical-align: -1px;
+}
+.st-key-t_heat [data-testid="stWidgetLabel"] p::before {
+  background: linear-gradient(90deg, var(--cool), var(--heat-warm), var(--heat-hot));
+}
+.st-key-t_parks [data-testid="stWidgetLabel"] p::before { background: var(--green); }
+.st-key-t_zones [data-testid="stWidgetLabel"] p::before {
+  background: var(--heat); border-radius: 50%;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--heat) 70%, transparent);
+}
+.st-key-w_thermal [data-testid="stWidgetLabel"] p::before { background: var(--heat); }
+.st-key-w_distance [data-testid="stWidgetLabel"] p::before { background: var(--green); }
+.st-key-w_impervious [data-testid="stWidgetLabel"] p::before { background: var(--sealed); }
+/* stMarkdownContainer has margin-bottom: -1rem to cancel a trailing <p> margin; our raw-HTML
+   blocks have no <p>, so without this each one is overlapped by the next element. */
+.st-key-felt_panel [data-testid="stMarkdownContainer"]:has(> [class^="uhi-"]) {
+  margin-bottom: 0 !important;
+}
+/* ===== end widget internals ===== */
 
-.st-key-felt_panel [data-testid="stVerticalBlock"] { gap: .6rem; }
-.st-key-felt_panel hr { margin: .5rem 0; border: 0; border-top: 1px solid var(--line); }
-.st-key-felt_panel [data-testid="stMetric"] {
-  background: var(--surface-2); border-radius: 10px; padding: .55rem .7rem;
-  border: 1px solid var(--line);
-}
-.st-key-felt_panel [data-testid="stMetricLabel"] p {
-  font-size: .64rem; font-weight: 500; color: var(--muted); letter-spacing: .02em;
-  line-height: 1.2;
-}
-.st-key-felt_panel [data-testid="stMetricValue"] {
-  color: var(--text-hi); font-weight: 600; letter-spacing: -.02em; font-size: 1.05rem;
-  font-variant-numeric: tabular-nums;
-}
-.st-key-felt_panel [data-testid="stDataFrame"] {
-  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
-}
-.st-key-felt_panel [data-testid="stExpander"] {
-  border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-2);
-}
-.st-key-felt_panel [data-testid="stTabs"] button p { font-size: .75rem; font-weight: 600; }
-.st-key-felt_panel [data-testid="stCaptionContainer"] { font-size: .7rem; color: var(--muted); }
-.st-key-felt_panel :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-/* Phones: the panel becomes a short bottom sheet so the map stays visible above it. */
+/* ===== Phones: the panel becomes a bottom sheet (kept last so it wins the cascade) ===== */
 @media (max-width: 768px) {
   .st-key-felt_panel, div.st-key-felt_panel[data-testid="stVerticalBlock"] {
-    position: fixed !important; top: auto !important; bottom: 0 !important;
-    left: 0 !important; right: auto !important; width: 100vw !important;
-    max-width: 100vw !important; height: auto !important;
-    max-height: 40vh !important; max-height: 40dvh !important;
-    border-radius: 20px 20px 0 0 !important; z-index: 9999 !important;
-    overflow-y: auto !important; padding: .75rem .9rem 2rem !important;
-    border-bottom: 0 !important; overscroll-behavior: contain;
+    top: auto !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100% !important; max-width: 100% !important;
+    height: auto !important; max-height: 85vh !important; max-height: 85dvh !important;
+    z-index: 9999 !important; border-radius: 18px 18px 0 0 !important; border-bottom: 0 !important;
+    padding: 6px 14px calc(12px + env(safe-area-inset-bottom)) !important;
   }
-  .uhi-hero p, .uhi-eyebrow { display: none; }
-  .uhi-hero h1 { font-size: 1.05rem; margin: 0 0 .2rem; }
-  .uhi-chips { margin-top: .3rem; }
-  /* keep the 2 x 2 KPI grid side by side instead of Streamlit's stacked mobile columns */
-  .st-key-felt_panel [data-testid="stHorizontalBlock"] { flex-direction: row !important;
-    flex-wrap: nowrap !important; }
-  .st-key-felt_panel [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-    min-width: 0 !important; flex: 1 1 0% !important; width: 0 !important; }
+  /* Grab handle */
+  .st-key-felt_panel::before {
+    content: ""; display: block; flex: none; width: 36px; height: 4px; border-radius: 2px;
+    background: var(--faint); margin: 2px auto 2px;
+  }
+  /* A section is open: half-height sheet that scrolls internally. */
+  /* (Same selector shape as the sheet rule above, so it wins on specificity.) */
+  .st-key-felt_panel:has(.st-key-panel_body),
+  div.st-key-felt_panel[data-testid="stVerticalBlock"]:has(.st-key-panel_body) {
+    height: 62vh !important; height: 62dvh !important;
+  }
+  /* ...and gives its room to the section: title and KPI strip collapse while it is open. */
+  .st-key-felt_panel:has(.st-key-panel_body)
+    [data-testid="stElementContainer"]:has(.uhi-kpis) {
+    display: none;
+  }
+  .st-key-felt_panel [data-testid="stVerticalBlock"] { gap: 8px; }
+  .uhi-eyebrow, .uhi-sub { display: none; }
+  .uhi-title { font-size: 16px !important; margin: 0 0 8px !important; }
+  .uhi-kpi { padding: 7px 7px; }
+  .uhi-kpi b { font-size: 14px; }
+  .uhi-kpi span { font-size: 10px; }
 }
-.uhi-side-h {
-  font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--muted); margin: .25rem 0 .55rem;
-}
-
-/* Hero */
-.uhi-hero { padding: 0; margin: 0; }
-.uhi-eyebrow {
-  font-size: .7rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--muted); display: flex; align-items: center; gap: .5rem;
-}
-.uhi-dot {
-  width: 8px; height: 8px; border-radius: 50%; background: var(--heat);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--heat) 70%, transparent);
-}
-.uhi-hero h1 {
-  font-size: 1.25rem; line-height: 1.25; font-weight: 700; letter-spacing: -.02em;
-  margin: .3rem 0 .3rem; padding: 0; color: var(--text-hi);
-}
-.uhi-hero p { color: var(--muted); margin: 0; font-size: .74rem; line-height: 1.4; }
-.uhi-chips { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .6rem; }
-.uhi-chip {
-  border: 1px solid var(--line-strong); background: var(--surface-2); border-radius: 999px;
-  padding: .15rem .55rem; font-size: .68rem; color: var(--text); white-space: nowrap;
-}
-.uhi-chip b { color: var(--text-hi); font-variant-numeric: tabular-nums; }
-
-/* Inspector card */
-.uhi-insp {
-  background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px;
-  padding: .85rem .95rem; margin-bottom: .3rem; color: var(--text-hi);
-  box-shadow: var(--shadow-sm);
-}
-.uhi-insp-top {
-  display: flex; justify-content: space-between; gap: .8rem; align-items: flex-start;
-}
-.uhi-insp-k {
-  font-size: .66rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--heat);
-}
-.uhi-insp-nb { font-size: 1.25rem; font-weight: 700; color: var(--text-hi); line-height: 1.2; }
-.uhi-insp-st { color: var(--muted); font-size: .85rem; }
-.uhi-insp-score {
-  text-align: center; border-radius: 10px; padding: .35rem .7rem; color: var(--text-hi);
-  min-width: 64px;
-}
-.uhi-insp-score b { display: block; font-size: 1.6rem; line-height: 1.1;
-  font-variant-numeric: tabular-nums; }
-.uhi-insp-score span {
-  font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; opacity: .85;
-}
-.uhi-insp-stats {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin: .85rem 0;
-}
-.uhi-insp-stats div {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
-  padding: .45rem .55rem;
-}
-.uhi-insp-stats span {
-  display: block; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--faint);
-}
-.uhi-insp-stats b { font-size: .98rem; color: var(--text-hi); font-variant-numeric: tabular-nums; }
-.uhi-bar { margin: .4rem 0; font-size: .75rem; color: var(--text); }
-.uhi-bar-row { display: flex; justify-content: space-between; }
-.uhi-bar-row span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
-.uhi-bar-track {
-  height: 6px; border-radius: 3px; background: var(--surface-3); margin-top: 3px;
-  overflow: hidden;
-}
-.uhi-bar-fill { height: 100%; border-radius: 3px; }
-.uhi-insp-rec {
-  margin-top: .8rem; border-left: 3px solid var(--green);
-  background: color-mix(in srgb, var(--green) 8%, transparent);
-  border-radius: 8px; padding: .55rem .75rem; color: var(--green-pale); font-size: .85rem;
-}
-.uhi-insp-rec span {
-  display: block; font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--green); font-weight: 600;
-}
-.uhi-insp-rec.uhi-off {
-  border-left-color: var(--faint); background: color-mix(in srgb, var(--faint) 18%, transparent);
-  color: var(--muted);
-}
-.uhi-insp-rec.uhi-off span { color: var(--muted); }
-.uhi-hint { color: var(--faint); font-size: .75rem; margin: -.3rem 0 .6rem; }
-
-/* Links: monochrome, underlined on hover */
-.uhi-insp a { color: var(--text); text-decoration: none;
-  border-bottom: 1px solid var(--line-strong); }
-.uhi-insp a:hover { border-bottom-color: var(--text); }
 """
 
 
