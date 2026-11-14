@@ -42,6 +42,7 @@ ESRI_URL = (
     "{{z}}/{{y}}/{{x}}"
 )
 
+PEEK_SHEET_PX = 264  # collapsed bottom sheet on phones (theme.FELT_CSS); a fallback only
 MAP_HEIGHT_PX = 900  # nominal; CSS stretches the st_folium iframe to 100vh x 100vw
 
 
@@ -136,6 +137,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
   (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const tier = (s) => s >= 75 ? 'var(--heat-hot)' : s >= 50 ? 'var(--heat)'
   : s >= 25 ? 'var(--heat-warm)' : 'var(--sealed)';
+const ink = (s) => s >= 75 ? 'var(--text-hi)' : 'var(--bg)';  // AA text on each tier
 const card = (p) => {
   const an = p.an == null ? 'n/a' : (p.an > 0 ? '+' : '') + Number(p.an).toFixed(1) + ' °C';
   const rank = p.rk ? '<span class="uhi-rank">#' + p.rk + '</span>' : '';
@@ -146,7 +148,8 @@ const card = (p) => {
   return '<div class="uhi-card">'
     + '<div class="uhi-head"><div class="uhi-title"><div class="uhi-nb">' + rank + esc(p.nb)
     + '</div><div class="uhi-st">' + street + '</div></div>'
-    + '<div class="uhi-badge" style="background:' + tier(p.ps) + '">' + p.ps + '</div></div>'
+    + '<div class="uhi-badge" style="background:' + tier(p.ps) + ';color:' + ink(p.ps) + '">'
+    + p.ps + '</div></div>'
     + '<div class="uhi-stats">'
     + '<div><span>LST anomaly</span><b>' + an + '</b></div>'
     + '<div><span>Park gap</span><b>' + p.pd + ' m</b></div>'
@@ -208,7 +211,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 .leaflet-control-layers label { font-size: 12px; }
 .leaflet-control-attribution {
   background: color-mix(in srgb, var(--bg) 75%, transparent) !important;
-  color: var(--faint) !important; font-size: 10px; }
+  color: var(--muted) !important; font-size: 10px; }
 .leaflet-control-attribution a { color: var(--muted) !important; }
 .leaflet-control-scale-line { background: color-mix(in srgb, var(--surface) 80%, transparent);
   color: var(--text); border-color: var(--faint); }
@@ -226,7 +229,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 .uhi-nb { font-size: 14px; font-weight: 700; color: var(--text-hi); }
 .uhi-st { color: var(--muted); font-size: 11.5px; margin-top: 1px; }
 .uhi-rank { color: var(--heat); margin-right: 6px; }
-.uhi-badge { flex: none; min-width: 38px; height: 26px; border-radius: 8px; color: var(--text-hi);
+.uhi-badge { flex: none; min-width: 38px; height: 26px; border-radius: 8px;
   font-weight: 800; font-size: 14px; text-align: center; line-height: 26px; padding: 0 6px;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 0 14px color-mix(in srgb, var(--heat) 35%, transparent); }
@@ -234,11 +237,11 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 .uhi-stats div { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
   padding: 5px 6px; }
 .uhi-stats span, .uhi-rec span { display: block; font-size: 9.5px; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--faint); }
+  text-transform: uppercase; color: var(--muted); }
 .uhi-rec span { color: var(--green); font-weight: 600; }
 .uhi-rec.uhi-off span { color: var(--muted); }
 .uhi-stats b { font-size: 12.5px; color: var(--text-hi); font-variant-numeric: tabular-nums; }
-.uhi-park { color: var(--faint); font-size: 11px; margin-bottom: 8px; }
+.uhi-park { color: var(--muted); font-size: 11px; margin-bottom: 8px; }
 .uhi-rec { border-left: 3px solid var(--green);
   background: color-mix(in srgb, var(--green) 8%, transparent);
   padding: 6px 8px; border-radius: 6px; color: var(--green-pale); }
@@ -271,7 +274,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 /* ===== Phones, touch and motion (kept last so it wins the cascade) ===== */
 @media (max-width: 768px) {
   .leaflet-top.leaflet-left, .leaflet-bottom.leaflet-left { margin-left: 0; }
-  .leaflet-bottom { bottom: 272px; }  /* clears the collapsed "peek" sheet (~265 px) */
+  /* --sheet-h: live bottom-sheet height, set by ResponsiveFit (fallback: collapsed peek) */
+  .leaflet-bottom { bottom: calc(var(--sheet-h, 264px) + 8px); }
   /* Compact legend: the heat ramp only, top-left; the swatches live in the panel's Tune. */
   .uhi-legend { top: 10px; left: 10px; right: auto; bottom: auto; width: 168px;
     padding: 7px 9px; border-radius: 10px; }
@@ -440,40 +444,92 @@ def _bounds(gdf: gpd.GeoDataFrame) -> list[list[float]]:
 
 
 class ResponsiveFit(MacroElement):
-    """``fitBounds`` that frames the data around the panel, decided in the browser.
+    """Frames the data around the panel / bottom sheet, decided in the browser.
 
     Desktop: the floating panel covers the left ~392 px, so pad that side. Phones (≤ 768 px):
-    the collapsed bottom sheet covers the bottom ~272 px, so pad the bottom, and frame the
-    top-K zones rather than the whole city so the numbered pins don't pile up. The breakpoint
-    and paddings mirror ``theme.FELT_CSS`` / ``MAP_CSS``.
+    frame the top-K zones (not the whole city, so the numbered pins don't pile up) above the
+    bottom sheet, whose live height is read from the parent page (the st_folium iframe is
+    same-origin) with a ResizeObserver:
+
+    * ``--sheet-h`` on the iframe's root keeps the map's bottom controls above the sheet;
+    * when the sheet grows after a tap (the Zone section opens), the tapped place is panned
+      into the middle of the strip still visible above it;
+    * if the user hasn't touched the map yet, the zones are refitted into that strip.
+
+    Without access to the parent page (or ResizeObserver) it falls back to the collapsed
+    sheet's height (``PEEK_SHEET_PX``). The breakpoint mirrors ``theme.FELT_CSS``.
     """
 
     _template = Template(
         """
         {% macro script(this, kwargs) %}
         (function (map) {
-          // The iframe is resized to the viewport (by CSS / the streamlit-folium frontend)
-          // after this script runs, so a fit at load is computed against the wrong size. Fit
-          // when ready and again on container resizes during the first seconds, before the
-          // user has had a chance to pan; later resizes leave their view alone.
-          var t0 = Date.now(), userMoved = false;
+          var PEEK = {{ this.peek_px }}, t0 = Date.now(), userMoved = false;
+          var sheetH = PEEK, lastTap = null;
+          var root = document.documentElement;
+          function phone() { return window.matchMedia('(max-width: 768px)').matches; }
           function moved() { userMoved = true; }
           map.on('dragstart', moved);
           map.getContainer().addEventListener('wheel', moved, {passive: true});
           map.getContainer().addEventListener('touchstart', moved, {passive: true});
+          // A tap/click is the user taking control too: from then on keep their view and
+          // only pan the tapped place clear of the sheet.
+          map.on('click', function (e) { lastTap = e.latlng; moved(); });
+
           function fit() {
             if (userMoved) { return; }
             map.invalidateSize();
-            var phone = window.matchMedia('(max-width: 768px)').matches;
+            // animate: false - an animated pan is cancelled by the frontend's own resize.
             map.fitBounds(
-              phone ? {{ this.phone_bounds|tojson }} : {{ this.bounds|tojson }},
-              // animate: false - an animated pan is cancelled by the frontend's own resize.
-              phone ? {paddingTopLeft: [12, 12], paddingBottomRight: [12, 284], animate: false}
-                    : {paddingTopLeft: [392, 24], paddingBottomRight: [24, 24], animate: false}
+              phone() ? {{ this.phone_bounds|tojson }} : {{ this.bounds|tojson }},
+              phone() ? {paddingTopLeft: [12, 12], paddingBottomRight: [12, sheetH + 12],
+                         animate: false}
+                      : {paddingTopLeft: [392, 24], paddingBottomRight: [24, 24],
+                         animate: false}
             );
           }
+
+          // The iframe is resized to the viewport after this script runs, so a fit at load
+          // uses the wrong size: fit when ready and on resizes during the first seconds.
           map.whenReady(function () { setTimeout(fit, 0); });
           map.on('resize', function () { if (Date.now() - t0 < 5000) { fit(); } });
+
+          function onSheet(h) {
+            if (h === sheetH && root.style.getPropertyValue('--sheet-h')) { return; }
+            var grew = h > sheetH;
+            sheetH = h;
+            root.style.setProperty('--sheet-h', h + 'px');
+            if (!phone()) { return; }
+            if (!userMoved) { fit(); return; }
+            if (grew && lastTap) {
+              var p = map.latLngToContainerPoint(lastTap);
+              var visible = map.getSize().y - h;
+              if (p.y > visible - 24) { map.panBy([0, p.y - visible / 2], {animate: true}); }
+            }
+          }
+          // The panel may not exist yet when this runs, and Streamlit can replace its node on
+          // a rerun, so (re)attach whenever the observed node is missing or detached. The
+          // ResizeObserver reacts within a frame; the 1 s tick also measures, as a fallback for
+          // pages that aren't rendering frames (background tabs, hidden embeds).
+          var sheet = null, blocked = false;
+          function measure() {
+            if (sheet && sheet.isConnected) {
+              onSheet(Math.round(sheet.getBoundingClientRect().height));
+            }
+          }
+          var observer = window.ResizeObserver ? new ResizeObserver(measure) : null;
+          function attach() {
+            if (blocked) { return; }
+            if (!(sheet && sheet.isConnected)) {
+              try {
+                sheet = window.parent.document.querySelector('.st-key-felt_panel');
+                if (sheet && observer) { observer.disconnect(); observer.observe(sheet); }
+              } catch (err) { blocked = true; return; }  // cross-origin: keep PEEK fallback
+            }
+            measure();
+          }
+          attach();
+          setInterval(attach, 1000);
         })({{ this._parent.get_name() }});
         {% endmacro %}
         """
@@ -484,6 +540,7 @@ class ResponsiveFit(MacroElement):
         self._name = "ResponsiveFit"
         self.bounds = bounds
         self.phone_bounds = phone_bounds
+        self.peek_px = PEEK_SHEET_PX
 
 
 def build_base_map(grid: gpd.GeoDataFrame, default_zones: gpd.GeoDataFrame) -> folium.Map:

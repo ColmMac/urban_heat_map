@@ -14,7 +14,7 @@ import pandas as pd
 
 from edinburgh_uhi import config
 from edinburgh_uhi.config import Weights
-from edinburgh_uhi.ui.theme import ACCENT, AMBER, COMPONENTS, CRIMSON, SLATE
+from edinburgh_uhi.ui.theme import ACCENT, AMBER, BG, COMPONENTS, CRIMSON, SLATE, TEXT_HI
 
 INTERVENTION_LABELS = {
     "green_roofs": "Green roofs",
@@ -56,6 +56,18 @@ def score_colour(score: float) -> str:
     if score >= 25:
         return AMBER
     return SLATE
+
+
+def score_ink(score: float) -> str:
+    """Text colour for a ``score_colour`` badge: white on crimson, ink on the lighter tiers.
+
+    Keeps every badge at WCAG AA (≥ 4.5:1); white on orange / amber / slate is only 2–2.7:1.
+    """
+    return TEXT_HI if score >= 75 else BG
+
+
+def _badge_style(score: float) -> str:
+    return f"background:{score_colour(score)};color:{score_ink(score)}"
 
 
 def zone_rank(zones: pd.DataFrame, cell_id: object) -> int | None:
@@ -146,7 +158,7 @@ def peek_html(selected: pd.Series, rank: int | None) -> str:
     street = _text(selected["main_street"], "")
     return (
         '<div class="uhi-peek">'
-        f'<div class="uhi-peek-score" style="background:{score_colour(score)}">{score:.0f}</div>'
+        f'<div class="uhi-peek-score" style="{_badge_style(score)}">{score:.0f}</div>'
         '<div class="uhi-peek-body">'
         f'<div class="uhi-peek-k">{kicker}</div>'
         f'<div class="uhi-peek-nb">{esc(_text(selected["neighbourhood"], "Edinburgh"))}'
@@ -188,7 +200,7 @@ def inspector_html(selected: pd.Series, rank: int | None, weights: Weights) -> s
         f'<div class="uhi-insp-k">{kicker}</div>'
         f'<div class="uhi-insp-nb">{esc(_text(selected["neighbourhood"], "Edinburgh"))}</div>'
         f'<div class="uhi-insp-st">{esc(street)}</div></div>'
-        f'<div class="uhi-insp-score" style="background:{score_colour(score)}">'
+        f'<div class="uhi-insp-score" style="{_badge_style(score)}">'
         f"<b>{score:.0f}</b><span>Priority</span></div></div>"
         '<div class="uhi-insp-stats">'
         f"<div><span>LST anomaly</span><b>{anomaly_txt}</b></div>"
@@ -236,7 +248,7 @@ def ranked_list_html(zones: pd.DataFrame, selected_id: object = None) -> str:
             f"<b>{esc(_text(z['neighbourhood'], 'Edinburgh'))}</b>"
             + (f"<small>{esc(street)}</small>" if street else "")
             + f"</div>{bar}</div>"
-            f'<span class="uhi-rank-score" style="color:{score_colour(score)}">{score:.0f}</span>'
+            f'<span class="uhi-rank-score" style="{_badge_style(score)}">{score:.0f}</span>'
             "</li>"
         )
     return (

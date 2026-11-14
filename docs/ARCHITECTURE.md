@@ -712,22 +712,7 @@ Columns: `st.columns([0.7, 0.3])` under the KPI row. The right column shows the 
 
 - Main file path: `src/edinburgh_uhi/app.py`. Python 3.12 (Advanced settings).
 - Dependencies: Community Cloud recognises `uv.lock` directly. Keep **one** dependency file only (no stray `requirements.txt`). All libraries here ship manylinux wheels, so no `packages.txt` is needed.
-- `.streamlit/config.toml`:
-
-```toml
-[theme]
-base = "dark"
-primaryColor = "#F97316"
-backgroundColor = "#0B0F19"
-secondaryBackgroundColor = "#111827"
-textColor = "#F3F4F6"
-
-[client]
-toolbarMode = "minimal"
-
-[server]
-headless = true
-```
+- `.streamlit/config.toml` is the source of truth (not copied here, so it can't drift): its `[theme]` mirrors the design tokens (§7.9, checked by `tests/test_ui.py`), and `[server] fileWatcherType = "none"` avoids inotify limits on Community Cloud.
 
 - No secrets required. An optional `CARTO_API_KEY` secret switches the basemap to CartoDB Dark Matter; without it the keyless Esri dark canvas is used.
 
@@ -763,6 +748,7 @@ Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
 - Widget keys (`w_*`, `k_zones`, `t_*`, `panel_view`, `map`) are a contract: tests and deep-links depend on them.
 
 **Design tokens.** `theme.TOKENS` is the only place a colour is defined. Chrome is monochrome ink (the primary colour is the text colour, so sliders and toggles are near-white); saturated colour is reserved for data meaning (heat ramp, greenspace, corridors, sealed ground), and zone ranks are heat-orange everywhere.
+- Contrast (WCAG 2.2 AA, asserted in `tests/test_ui.py`): `text-hi`, `text`, `muted` and the data colours used as text are ≥ 4.5:1 on `bg` / `surface` / `surface-2`; `faint` is for non-text UI only (scrollbar, grab handle, borders; ≥ 3:1) and is never used as a text `color`. Score badges pair each tier with `components.score_ink` (white on crimson, ink on orange / amber / slate), because white on the lighter tiers is only 2–2.7:1.
 - Stylesheets and the hover-card JS use `var(--token)`. `css_vars()` is injected into the page *and* into the st_folium iframe, which is a separate document and also loads Inter itself.
 - Python-side aliases (`BG`, `ACCENT`, `EMERALD`, `HEAT_RAMP`, …) cover what cannot resolve CSS variables: Leaflet canvas fills (`prefer_canvas=True`), the branca colormap, Altair specs and inline styles built in Python.
 - `.streamlit/config.toml` mirrors the surface/text tokens and loads Inter (`font = "Inter:<url>"`).
@@ -775,7 +761,9 @@ Record at 100% browser zoom. Hide the browser chrome. Export at 1080p, 30 fps.
 **Map: static base + dynamic layers (TASKS Ticket 6, Phase 4).**
 - `build_base_map(grid, default_zones)` holds only what never changes with the controls: basemaps, labels pane, `MAP_CSS`, the legend (its ramp depends only on `lst_anomaly_c`), `ResponsiveFit` and the basemap `LayerControl`. `dynamic_layers(scored, zones, layers, toggles)` returns the heat / greenspace / top-zone FeatureGroups, passed as `st_folium(feature_group_to_add=...)`.
 - Why: st_folium keys its component on a hash of the base map's script. With a byte-identical base script the iframe is never remounted, so weight, K and toggle changes swap layers in place and the user keeps their pan and zoom (previously every change reloaded the map and reset the view). The frontend re-binds click handlers on swapped layers, so map clicks keep working. Bounds are rounded so the script is stable; `test_base_map_key_is_stable_across_builds` guards it.
-- `ResponsiveFit` (a `MacroElement`) fits in the browser: desktop pads 392 px on the left for the panel; phones (≤ 768 px) frame the default top-K zones and pad 284 px at the bottom for the peek sheet. It runs on `whenReady` and on container resizes during the first 5 s (until the user drags, scrolls or touches), with `animate: false`, because the frontend resizes the iframe after the map script runs and cancels an animated pan.
+- `ResponsiveFit` (a `MacroElement`) fits in the browser: desktop pads 392 px on the left for the panel; phones (≤ 768 px) frame the default top-K zones above the bottom sheet. It runs on `whenReady` and on container resizes during the first 5 s, with `animate: false`, because the frontend resizes the iframe after the map script runs and cancels an animated pan. Once the user drags, scrolls, touches or clicks the map, it never refits again.
+- Phones follow the sheet's live height: the st_folium iframe is same-origin, so `ResponsiveFit` observes the parent's `.st-key-felt_panel` (ResizeObserver, plus a 1 s measuring tick that also re-attaches if Streamlit replaces the node and covers pages that aren't rendering frames). It sets `--sheet-h` on the iframe root (the map's bottom controls sit at `calc(var(--sheet-h) + 8px)`); when the sheet grows after a tap it pans the tapped place into the middle of the strip still visible above it; if the user hasn't touched the map it refits the zones into that strip. Without parent access it falls back to `PEEK_SHEET_PX` (the collapsed sheet).
+- Keyboard: every panel control is reachable with Tab and shows a `--focus` ring. Toggles and sliders focus a visually-hidden `<input>`, so `FELT_CSS` forwards `:focus-visible` to the visible track / thumb with `:has()`. The section nav is `position: sticky` inside the panel, so it stays reachable while a long section scrolls.
 - Touch (`@media (hover: none)`): hover cards and zoom buttons are hidden; a tap selects the cell and opens the Zone section, pinch zooms. Phones get a compact ramp-only legend top-left (the full key lives in Tune's label swatches) and smaller pins. `prefers-reduced-motion` stops the pin pulse. Full-height rules use `100dvh` (with a `100vh` fallback) so mobile browser bars don't hide the bottom of the map.
 
 ---
