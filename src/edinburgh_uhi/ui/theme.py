@@ -86,12 +86,12 @@ def css_vars() -> str:
 FELT_CSS = """
 /* ===== Page: full-bleed canvas, the map owns the viewport ===== */
 html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
-  overflow: hidden !important; height: 100vh; margin: 0; padding: 0;
+  overflow: hidden !important; height: 100vh; height: 100dvh; margin: 0; padding: 0;
 }
 html, body, [data-testid="stAppViewContainer"], .stApp { background: var(--bg); }
 [data-testid="stMainBlockContainer"], .block-container, [data-testid="block-container"] {
   padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important;
-  height: 100vh;
+  height: 100vh; height: 100dvh;
 }
 [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] { gap: 0; }
 #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stToolbarActions"],
@@ -99,10 +99,12 @@ html, body, [data-testid="stAppViewContainer"], .stApp { background: var(--bg); 
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stElementContainer"]:has(iframe[title*="st_folium"]), .stCustomComponentV1 {
-  width: 100vw !important; height: 100vh !important; margin: 0 !important;
+  width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+  margin: 0 !important;
 }
 iframe[title*="st_folium"] {
   border: none !important; display: block; width: 100vw !important; height: 100vh !important;
+  height: 100dvh !important;
 }
 
 /* ===== Panel (st.container(key="felt_panel")): floating card on desktop ===== */

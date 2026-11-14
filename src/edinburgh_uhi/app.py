@@ -33,7 +33,7 @@ from streamlit_folium import st_folium
 
 from edinburgh_uhi import config
 from edinburgh_uhi.ui import panel
-from edinburgh_uhi.ui.map_view import MAP_HEIGHT_PX, build_map
+from edinburgh_uhi.ui.map_view import MAP_HEIGHT_PX, build_base_map, dynamic_layers
 from edinburgh_uhi.ui.model import rerank
 from edinburgh_uhi.ui.state import (
     MAP_KEY,
@@ -125,8 +125,11 @@ def main() -> None:
     with st.container(key="felt_panel"):
         panel.render_panel(meta, model, zones, selected)
 
+    # The base map is identical on every run, so st_folium keeps the same component (and the
+    # user's pan/zoom); only the dynamic layers are swapped when weights, K or toggles change.
     st_folium(
-        build_map(scored, zones, layers, model.toggles),
+        build_base_map(layers["grid"], layers["zones"]),
+        feature_group_to_add=dynamic_layers(scored, zones, layers, model.toggles),
         height=MAP_HEIGHT_PX,
         width=None,
         use_container_width=True,
